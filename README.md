@@ -1,84 +1,111 @@
-# TokenEater
+<p align="center">
+  <img src="ClaudeUsageApp/Assets.xcassets/AppIcon.appiconset/icon_256x256.png" width="128" height="128" alt="TokenEater">
+</p>
 
-Widget macOS natif affichant votre consommation Claude (session, hebdo, Sonnet) directement sur le bureau.
+<h1 align="center">TokenEater</h1>
 
-![macOS](https://img.shields.io/badge/macOS-14%2B-black?logo=apple)
-![Swift](https://img.shields.io/badge/Swift-5.9-orange?logo=swift)
-![WidgetKit](https://img.shields.io/badge/WidgetKit-native-blue)
+<p align="center">
+  <strong>Monitor your Claude AI usage limits directly from your macOS desktop.</strong>
+</p>
 
-## Fonctionnalites
+<p align="center">
+  <img src="https://img.shields.io/badge/macOS-14%2B-111?logo=apple&logoColor=white" alt="macOS 14+">
+  <img src="https://img.shields.io/badge/Swift-5.9-F05138?logo=swift&logoColor=white" alt="Swift 5.9">
+  <img src="https://img.shields.io/badge/WidgetKit-native-007AFF?logo=apple&logoColor=white" alt="WidgetKit">
+  <img src="https://img.shields.io/badge/license-MIT-green" alt="MIT License">
+  <img src="https://img.shields.io/github/v/release/AThevon/TokenEater?color=F97316" alt="Release">
+</p>
 
-- **Session (5h)** — Fenetre glissante, countdown avant reset
-- **Hebdomadaire** — Tous modeles (Opus, Sonnet, Haiku)
-- **Sonnet** — Limite dediee Sonnet
-- **Refresh automatique** toutes les 15 min
-- **Deux tailles** : medium (anneaux circulaires) et large (barres de progression)
-- **Indicateur hors-ligne** avec fallback sur cache
+---
 
-## Installation
+## What is TokenEater?
 
-### Pre-requis
+A native macOS widget that displays your Claude (Anthropic) usage in real-time:
 
-- macOS 14 (Sonoma) ou plus
+- **Session (5h)** — Sliding window with countdown to reset
+- **Weekly — All models** — Opus, Sonnet & Haiku combined
+- **Weekly — Sonnet** — Dedicated Sonnet limit
+
+Two widget sizes available: **medium** (circular gauges) and **large** (progress bars).
+
+Color-coded: green when you're comfortable, orange when usage climbs, red when approaching the limit.
+
+## Quick Install
+
+### Download the binary
+
+1. Go to [**Releases**](../../releases/latest) and download `TokenEater.zip`
+2. Unzip and move `TokenEater.app` to `/Applications`
+3. First launch: **right-click > Open** (required once — the app is not notarized)
+4. Or run in terminal: `xattr -cr /Applications/TokenEater.app && open /Applications/TokenEater.app`
+
+### Configure
+
+1. Open **claude.ai** in your browser and log in
+2. Open DevTools (`Cmd + Option + I`) > **Application** > **Cookies** > **claude.ai**
+3. Copy the **sessionKey** cookie (`sk-ant-sid01-...`)
+4. Copy the **lastActiveOrg** cookie (this is your Organization ID)
+5. Paste both values in the TokenEater settings window
+6. Add the widget: **right-click on desktop > Edit Widgets > search "TokenEater"**
+
+> Cookies expire roughly every month. If the widget shows an error, update them in the app.
+
+## Build from source
+
+### Requirements
+
+- macOS 14 (Sonoma) or later
 - Xcode 15+
-- [XcodeGen](https://github.com/yonaskolb/XcodeGen) (`brew install xcodegen`)
+- [XcodeGen](https://github.com/yonaskolb/XcodeGen): `brew install xcodegen`
 
-### Build
+### Steps
 
 ```bash
-# Generer le projet Xcode
+git clone https://github.com/AThevon/TokenEater.git
+cd TokenEater
+
+# Generate Xcode project
 xcodegen generate
 
-# IMPORTANT : re-ajouter NSExtension dans ClaudeUsageWidget/Info.plist
-# (XcodeGen le supprime a chaque regeneration)
+# ⚠️ XcodeGen strips NSExtension from the widget Info.plist.
+# Re-add it manually or run:
+plutil -insert NSExtension -json '{"NSExtensionPointIdentifier":"com.apple.widgetkit-extension"}' \
+  ClaudeUsageWidget/Info.plist 2>/dev/null || true
 
 # Build
 xcodebuild -project ClaudeUsageWidget.xcodeproj \
   -scheme ClaudeUsageApp \
-  -configuration Debug \
+  -configuration Release \
   -derivedDataPath build build
 
-# Installer
-cp -R "build/Build/Products/Debug/TokenEater.app" /Applications/
-killall NotificationCenter
+# Install
+cp -R "build/Build/Products/Release/TokenEater.app" /Applications/
+killall NotificationCenter 2>/dev/null
 open "/Applications/TokenEater.app"
 ```
-
-### Configuration
-
-1. Ouvrir **claude.ai** dans Chrome et se connecter
-2. DevTools (`Cmd + Option + I`) > **Application** > **Cookies** > **claude.ai**
-3. Copier le cookie **sessionKey** (`sk-ant-sid01-...`)
-4. Copier le cookie **lastActiveOrg** (Organization ID)
-5. Coller les deux dans l'app TokenEater
-6. Ajouter le widget : clic droit bureau > **Modifier les widgets** > chercher "TokenEater"
-
-### Partager a un collegue
-
-```bash
-# Zipper l'app
-cd /Applications
-zip -r ~/Desktop/TokenEater.zip "TokenEater.app"
-```
-
-Le collegue doit :
-1. Dezipper `TokenEater.app` dans `/Applications`
-2. Clic droit > **Ouvrir** (bypass Gatekeeper la premiere fois)
-3. Configurer ses cookies dans l'app
 
 ## Architecture
 
 ```
-ClaudeUsageApp/       # App hote (settings, pas dans le Dock)
-ClaudeUsageWidget/    # Widget Extension (WidgetKit)
-Shared/               # Code partage (modeles, API client, extensions)
-project.yml           # Config XcodeGen
+ClaudeUsageApp/          App host (settings UI, hidden from Dock)
+ClaudeUsageWidget/       Widget Extension (WidgetKit, 15-min refresh)
+Shared/                  Shared code (API client, models, extensions)
+project.yml              XcodeGen configuration
 ```
 
-L'app hote ecrit la config dans le container sandbox du widget. Le widget lit depuis son propre container. Pas besoin d'App Groups.
+The host app writes configuration to the widget extension's sandbox container. The widget reads from its own container. No App Groups required.
 
-## API
+## How it works
 
-Endpoint : `GET https://claude.ai/api/organizations/{org_id}/usage`
+TokenEater calls the Claude usage API:
 
-Auth via cookie `sessionKey`. Les cookies expirent environ chaque mois.
+```
+GET https://claude.ai/api/organizations/{org_id}/usage
+Cookie: sessionKey=sk-ant-sid01-...
+```
+
+The response includes `utilization` (0–100) and `resets_at` for each limit bucket. The widget refreshes every 15 minutes (WidgetKit minimum) and caches the last successful response for offline display.
+
+## License
+
+MIT — do whatever you want with it.

@@ -33,19 +33,15 @@ struct UsageWidgetView: View {
     private func mediumUsageContent(_ usage: UsageResponse) -> some View {
         VStack(spacing: 0) {
             // Header
-            HStack(spacing: 6) {
-                Image(systemName: "bolt.fill")
-                    .font(.system(size: 9, weight: .bold))
-                    .foregroundStyle(
-                        LinearGradient(
-                            colors: [Color(hex: "#F97316"), Color(hex: "#FB923C")],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
+            HStack(spacing: 5) {
+                Image("WidgetLogo")
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 12, height: 12)
                 Text("TokenEater")
-                    .font(.system(size: 11, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white.opacity(0.9))
+                    .font(.system(size: 10, weight: .heavy))
+                    .tracking(0.3)
+                    .foregroundStyle(.white.opacity(0.5))
                 Spacer()
                 if entry.isStale {
                     Image(systemName: "wifi.slash")
@@ -53,7 +49,7 @@ struct UsageWidgetView: View {
                         .foregroundStyle(.white.opacity(0.4))
                 }
             }
-            .padding(.bottom, 10)
+            .padding(.bottom, 16)
 
             // Circular gauges
             HStack(spacing: 0) {
@@ -96,15 +92,10 @@ struct UsageWidgetView: View {
         VStack(alignment: .leading, spacing: 0) {
             // Header
             HStack(alignment: .center) {
-                Image(systemName: "bolt.fill")
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundStyle(
-                        LinearGradient(
-                            colors: [Color(hex: "#F97316"), Color(hex: "#FB923C")],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
+                Image("WidgetLogo")
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 16, height: 16)
                 Text("TokenEater")
                     .font(.system(size: 16, weight: .bold, design: .rounded))
                     .foregroundStyle(.white.opacity(0.95))
@@ -251,19 +242,19 @@ struct CircularUsageView: View {
     let utilization: Double
 
     private var ringGradient: LinearGradient {
-        if utilization >= 90 {
+        if utilization >= 85 {
             return LinearGradient(
                 colors: [Color(hex: "#EF4444"), Color(hex: "#DC2626")],
                 startPoint: .topLeading, endPoint: .bottomTrailing
             )
-        } else if utilization >= 70 {
+        } else if utilization >= 60 {
             return LinearGradient(
-                colors: [Color(hex: "#F59E0B"), Color(hex: "#F97316")],
+                colors: [Color(hex: "#F97316"), Color(hex: "#FB923C")],
                 startPoint: .topLeading, endPoint: .bottomTrailing
             )
         } else {
             return LinearGradient(
-                colors: [Color(hex: "#FB923C"), Color(hex: "#F97316")],
+                colors: [Color(hex: "#22C55E"), Color(hex: "#4ADE80")],
                 startPoint: .topLeading, endPoint: .bottomTrailing
             )
         }
@@ -281,19 +272,20 @@ struct CircularUsageView: View {
                     .rotationEffect(.degrees(-90))
 
                 Text("\(Int(utilization))%")
-                    .font(.system(size: 14, weight: .bold, design: .rounded))
+                    .font(.system(size: 12, weight: .black, design: .rounded))
                     .monospacedDigit()
-                    .foregroundStyle(.white.opacity(0.95))
+                    .foregroundStyle(.white)
             }
             .frame(width: 50, height: 50)
 
-            VStack(spacing: 1) {
+            VStack(spacing: 2) {
                 Text(label)
-                    .font(.system(size: 10, weight: .semibold, design: .rounded))
-                    .foregroundStyle(.white.opacity(0.8))
+                    .font(.system(size: 10, weight: .bold))
+                    .tracking(0.2)
+                    .foregroundStyle(.white.opacity(0.85))
                 Text(resetInfo)
-                    .font(.system(size: 8, design: .rounded))
-                    .foregroundStyle(.white.opacity(0.35))
+                    .font(.system(size: 8, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.4))
             }
         }
         .frame(maxWidth: .infinity)
@@ -310,31 +302,31 @@ struct LargeUsageBarView: View {
     let utilization: Double
 
     private var barGradient: LinearGradient {
-        if utilization >= 90 {
+        if utilization >= 85 {
             return LinearGradient(
                 colors: [Color(hex: "#EF4444"), Color(hex: "#DC2626")],
                 startPoint: .leading, endPoint: .trailing
             )
-        } else if utilization >= 70 {
+        } else if utilization >= 60 {
             return LinearGradient(
-                colors: [Color(hex: "#F59E0B"), Color(hex: "#F97316")],
+                colors: [Color(hex: "#F97316"), Color(hex: "#FB923C")],
                 startPoint: .leading, endPoint: .trailing
             )
         } else {
             return LinearGradient(
-                colors: [Color(hex: "#F97316"), Color(hex: "#FB923C")],
+                colors: [Color(hex: "#22C55E"), Color(hex: "#4ADE80")],
                 startPoint: .leading, endPoint: .trailing
             )
         }
     }
 
     private var accentColor: Color {
-        if utilization >= 90 {
+        if utilization >= 85 {
             return Color(hex: "#EF4444")
-        } else if utilization >= 70 {
-            return Color(hex: "#F59E0B")
-        } else {
+        } else if utilization >= 60 {
             return Color(hex: "#F97316")
+        } else {
+            return Color(hex: "#22C55E")
         }
     }
 
@@ -348,10 +340,11 @@ struct LargeUsageBarView: View {
 
                 VStack(alignment: .leading, spacing: 1) {
                     Text(label)
-                        .font(.system(size: 13, weight: .semibold, design: .rounded))
+                        .font(.system(size: 13, weight: .bold))
+                        .tracking(0.2)
                         .foregroundStyle(.white.opacity(0.9))
                     Text(subtitle)
-                        .font(.system(size: 9, design: .rounded))
+                        .font(.system(size: 9, weight: .medium))
                         .foregroundStyle(.white.opacity(0.35))
                 }
 
@@ -359,11 +352,11 @@ struct LargeUsageBarView: View {
 
                 VStack(alignment: .trailing, spacing: 1) {
                     Text("\(Int(utilization))%")
-                        .font(.system(size: 20, weight: .bold, design: .rounded))
+                        .font(.system(size: 16, weight: .black, design: .rounded))
                         .monospacedDigit()
                         .foregroundStyle(accentColor)
                     Text("Reset \(resetInfo)")
-                        .font(.system(size: 8, design: .rounded))
+                        .font(.system(size: 8, weight: .medium))
                         .foregroundStyle(.white.opacity(0.3))
                 }
             }
