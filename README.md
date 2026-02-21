@@ -36,8 +36,11 @@ Color-coded: green when you're comfortable, orange when usage climbs, red when a
 
 1. Go to [**Releases**](../../releases/latest) and download `TokenEater.dmg`
 2. Open the DMG, drag `TokenEater.app` into `Applications`
-3. First launch: **right-click > Open** (required once — the app is not notarized)
-4. Or run in terminal: `xattr -cr /Applications/TokenEater.app && open /Applications/TokenEater.app`
+3. **Important** — the app is not notarized by Apple. Before the first launch, run:
+   ```bash
+   xattr -cr /Applications/TokenEater.app
+   ```
+4. Open `TokenEater.app` from Applications
 
 ### Configure
 
