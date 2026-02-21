@@ -1,0 +1,62 @@
+name: ClaudeUsageWidget
+options:
+  bundleIdPrefix: com.claudeusagewidget
+  deploymentTarget:
+    macOS: "14.0"
+  xcodeVersion: "15.0"
+  groupSortPosition: top
+
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    MACOSX_DEPLOYMENT_TARGET: "14.0"
+    CODE_SIGN_STYLE: Automatic
+
+targets:
+  ClaudeUsageApp:
+    type: application
+    platform: macOS
+    sources:
+      - path: ClaudeUsageApp
+      - path: Shared
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.claudeusagewidget.app
+        PRODUCT_NAME: TokenEater
+        CODE_SIGN_ENTITLEMENTS: ClaudeUsageApp/ClaudeUsageApp.entitlements
+        INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.utilities
+        INFOPLIST_KEY_CFBundleDisplayName: TokenEater
+        INFOPLIST_KEY_LSUIElement: YES
+        GENERATE_INFOPLIST_FILE: YES
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+    dependencies:
+      - target: ClaudeUsageWidgetExtension
+        embed: true
+
+  ClaudeUsageWidgetExtension:
+    type: app-extension
+    platform: macOS
+    sources:
+      - path: ClaudeUsageWidget
+        excludes:
+          - Info.plist
+      - path: Shared
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.claudeusagewidget.app.widget
+        PRODUCT_NAME: ClaudeUsageWidgetExtension
+        CODE_SIGN_ENTITLEMENTS: ClaudeUsageWidget/ClaudeUsageWidget.entitlements
+        LD_RUNPATH_SEARCH_PATHS: "$(inherited) @executable_path/../Frameworks @executable_path/../../../../Frameworks"
+    info:
+      path: ClaudeUsageWidget/Info.plist
+
+schemes:
+  ClaudeUsageApp:
+    build:
+      targets:
+        ClaudeUsageApp: all
+        ClaudeUsageWidgetExtension: all
+    run:
+      config: Debug
+    archive:
+      config: Release
