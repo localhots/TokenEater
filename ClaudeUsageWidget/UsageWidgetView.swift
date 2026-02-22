@@ -57,21 +57,21 @@ struct UsageWidgetView: View {
                     CircularUsageView(
                         label: String(localized: "widget.session"),
                         resetInfo: formatResetTime(fiveHour.resetsAtDate),
-                        utilization: fiveHour.utilization
+                        utilization: fiveHour.utilization ?? 0
                     )
                 }
                 if let sevenDay = usage.sevenDay {
                     CircularUsageView(
                         label: String(localized: "widget.weekly"),
                         resetInfo: formatResetDate(sevenDay.resetsAtDate),
-                        utilization: sevenDay.utilization
+                        utilization: sevenDay.utilization ?? 0
                     )
                 }
                 if let sonnet = usage.sevenDaySonnet {
                     CircularUsageView(
                         label: String(localized: "widget.sonnet"),
                         resetInfo: formatResetDate(sonnet.resetsAtDate),
-                        utilization: sonnet.utilization
+                        utilization: sonnet.utilization ?? 0
                     )
                 }
             }
@@ -119,7 +119,7 @@ struct UsageWidgetView: View {
                     label: String(localized: "widget.session"),
                     subtitle: String(localized: "widget.session.subtitle"),
                     resetInfo: formatResetTime(fiveHour.resetsAtDate),
-                    utilization: fiveHour.utilization
+                    utilization: fiveHour.utilization ?? 0
                 )
             }
 
@@ -132,7 +132,7 @@ struct UsageWidgetView: View {
                     label: String(localized: "widget.weekly.full"),
                     subtitle: String(localized: "widget.weekly.subtitle"),
                     resetInfo: formatResetDate(sevenDay.resetsAtDate),
-                    utilization: sevenDay.utilization
+                    utilization: sevenDay.utilization ?? 0
                 )
             }
 
@@ -145,7 +145,7 @@ struct UsageWidgetView: View {
                     label: String(localized: "widget.sonnet"),
                     subtitle: String(localized: "widget.sonnet.subtitle"),
                     resetInfo: formatResetDate(sonnet.resetsAtDate),
-                    utilization: sonnet.utilization
+                    utilization: sonnet.utilization ?? 0
                 )
             }
 

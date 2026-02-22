@@ -23,8 +23,8 @@ struct UsageResponse: Codable {
 }
 
 struct UsageBucket: Codable {
-    let utilization: Double
-    let resetsAt: String
+    let utilization: Double?
+    let resetsAt: String?
 
     enum CodingKeys: String, CodingKey {
         case utilization
@@ -32,6 +32,7 @@ struct UsageBucket: Codable {
     }
 
     var resetsAtDate: Date? {
+        guard let resetsAt else { return nil }
         // Try with fractional seconds first (API format), then without
         let withFractional = ISO8601DateFormatter()
         withFractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
