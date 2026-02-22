@@ -46,6 +46,13 @@
 "settings.pacing.display" = "Affichage rythme";
 "settings.pacing.dot" = "Point seul";
 "settings.pacing.dotdelta" = "Point + delta (%)";
+"settings.tab.proxy" = "Proxy";
+"settings.proxy.toggle" = "Activer le proxy SOCKS5";
+"settings.proxy.footer" = "Utile derrière un firewall corporate via un tunnel SSH.";
+"settings.proxy.config" = "Configuration proxy";
+"settings.proxy.host" = "Hôte";
+"settings.proxy.port" = "Port";
+"settings.proxy.hint" = "Exemple : ssh -D 1080 user@bastion puis activez le proxy ici.";
 
 /* Connect */
 "connect.button" = "Connexion";

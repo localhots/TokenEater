@@ -17,6 +17,17 @@ final class ClaudeAPIClient {
         SharedStorage.readConfig(fromHost: isHostApp)
     }
 
+    private var session: URLSession {
+        guard let config = config, config.proxyEnabled else { return .shared }
+        let c = URLSessionConfiguration.default
+        c.connectionProxyDictionary = [
+            kCFNetworkProxiesSOCKSEnable as String: true,
+            kCFNetworkProxiesSOCKSProxy as String: config.proxyHost,
+            kCFNetworkProxiesSOCKSPort as String: config.proxyPort,
+        ]
+        return URLSession(configuration: c)
+    }
+
     // MARK: - Auth Resolution
 
     func resolveAuthMethod() -> AuthMethod? {
@@ -64,7 +75,7 @@ final class ClaudeAPIClient {
             request = req
         }
 
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await session.data(for: request)
 
         guard let httpResponse = response as? HTTPURLResponse else {
             throw ClaudeAPIError.invalidResponse
@@ -114,7 +125,7 @@ final class ClaudeAPIClient {
         }
 
         do {
-            let (data, response) = try await URLSession.shared.data(for: request)
+            let (data, response) = try await session.data(for: request)
             guard let httpResponse = response as? HTTPURLResponse else {
                 return ConnectionTestResult(success: false, message: String(localized: "error.invalidresponse.short"))
             }

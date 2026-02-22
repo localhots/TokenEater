@@ -76,6 +76,27 @@ enum AppConstants {
 struct SharedConfig: Codable {
     var sessionKey: String
     var organizationID: String
+    var proxyEnabled: Bool
+    var proxyHost: String
+    var proxyPort: Int
+
+    init(sessionKey: String = "", organizationID: String = "",
+         proxyEnabled: Bool = false, proxyHost: String = "127.0.0.1", proxyPort: Int = 1080) {
+        self.sessionKey = sessionKey
+        self.organizationID = organizationID
+        self.proxyEnabled = proxyEnabled
+        self.proxyHost = proxyHost
+        self.proxyPort = proxyPort
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        sessionKey = try container.decode(String.self, forKey: .sessionKey)
+        organizationID = try container.decode(String.self, forKey: .organizationID)
+        proxyEnabled = try container.decodeIfPresent(Bool.self, forKey: .proxyEnabled) ?? false
+        proxyHost = try container.decodeIfPresent(String.self, forKey: .proxyHost) ?? "127.0.0.1"
+        proxyPort = try container.decodeIfPresent(Int.self, forKey: .proxyPort) ?? 1080
+    }
 }
 
 // MARK: - Cached Usage (for offline support)

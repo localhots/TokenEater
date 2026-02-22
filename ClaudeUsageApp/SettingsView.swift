@@ -31,6 +31,10 @@ struct SettingsView: View {
     @State private var pinnedSonnet = false
     @State private var pinnedPacing = false
 
+    @State private var proxyEnabled = false
+    @State private var proxyHost = "127.0.0.1"
+    @State private var proxyPort = "1080"
+
     // Colors kept for guide/browser picker sheets
     private let sheetBg = Color(hex: "#141416")
     private let sheetCard = Color.white.opacity(0.04)
@@ -69,6 +73,10 @@ struct SettingsView: View {
                 displayTab
                     .tabItem {
                         Label("settings.tab.display", systemImage: "menubar.rectangle")
+                    }
+                proxyTab
+                    .tabItem {
+                        Label("settings.tab.proxy", systemImage: "network")
                     }
             }
         }
@@ -237,6 +245,43 @@ struct SettingsView: View {
         .onChange(of: pacingDisplayMode) { _ in
             NotificationCenter.default.post(name: .displaySettingsDidChange, object: nil)
         }
+    }
+
+    // MARK: - Proxy Tab
+
+    private var proxyTab: some View {
+        Form {
+            Section {
+                Toggle("settings.proxy.toggle", isOn: $proxyEnabled)
+            } footer: {
+                Text("settings.proxy.footer")
+            }
+
+            Section("settings.proxy.config") {
+                LabeledContent("settings.proxy.host") {
+                    TextField("127.0.0.1", text: $proxyHost)
+                        .textFieldStyle(.roundedBorder)
+                        .font(.system(.body, design: .monospaced))
+                }
+                LabeledContent("settings.proxy.port") {
+                    TextField("1080", text: $proxyPort)
+                        .textFieldStyle(.roundedBorder)
+                        .font(.system(.body, design: .monospaced))
+                        .frame(width: 80)
+                }
+            }
+            .disabled(!proxyEnabled)
+
+            Section {
+                Text("settings.proxy.hint")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .formStyle(.grouped)
+        .onChange(of: proxyEnabled) { _ in saveConfig() }
+        .onChange(of: proxyHost) { _ in saveConfig() }
+        .onChange(of: proxyPort) { _ in saveConfig() }
     }
 
     // MARK: - Guide Sheet
@@ -464,6 +509,9 @@ struct SettingsView: View {
         if let config = SharedStorage.readConfig(fromHost: true) {
             sessionKey = config.sessionKey
             organizationID = config.organizationID
+            proxyEnabled = config.proxyEnabled
+            proxyHost = config.proxyHost
+            proxyPort = String(config.proxyPort)
         }
         loadPinnedMetrics()
         if KeychainOAuthReader.readClaudeCodeToken() != nil {
@@ -476,7 +524,13 @@ struct SettingsView: View {
     }
 
     private func saveConfig() {
-        let config = SharedConfig(sessionKey: sessionKey, organizationID: organizationID)
+        let config = SharedConfig(
+            sessionKey: sessionKey,
+            organizationID: organizationID,
+            proxyEnabled: proxyEnabled,
+            proxyHost: proxyHost,
+            proxyPort: Int(proxyPort) ?? 1080
+        )
         SharedStorage.writeConfig(config, fromHost: true)
         onConfigSaved?()
     }
