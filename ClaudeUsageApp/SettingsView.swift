@@ -198,8 +198,8 @@ struct SettingsView: View {
             }
         }
         .formStyle(.grouped)
-        .onChange(of: sessionKey) { saveConfig() }
-        .onChange(of: organizationID) { saveConfig() }
+        .onChange(of: sessionKey) { _ in saveConfig() }
+        .onChange(of: organizationID) { _ in saveConfig() }
     }
 
     // MARK: - Display Tab
@@ -230,11 +230,11 @@ struct SettingsView: View {
         }
         .formStyle(.grouped)
         .onAppear { loadPinnedMetrics() }
-        .onChange(of: pinnedFiveHour) { savePinnedMetrics() }
-        .onChange(of: pinnedSevenDay) { savePinnedMetrics() }
-        .onChange(of: pinnedSonnet) { savePinnedMetrics() }
-        .onChange(of: pinnedPacing) { savePinnedMetrics() }
-        .onChange(of: pacingDisplayMode) {
+        .onChange(of: pinnedFiveHour) { _ in savePinnedMetrics() }
+        .onChange(of: pinnedSevenDay) { _ in savePinnedMetrics() }
+        .onChange(of: pinnedSonnet) { _ in savePinnedMetrics() }
+        .onChange(of: pinnedPacing) { _ in savePinnedMetrics() }
+        .onChange(of: pacingDisplayMode) { _ in
             NotificationCenter.default.post(name: .displaySettingsDidChange, object: nil)
         }
     }

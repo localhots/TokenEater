@@ -12,9 +12,7 @@ struct PacingWidgetView: View {
                 placeholderContent
             }
         }
-        .containerBackground(for: .widget) {
-            Color.black.opacity(0.85)
-        }
+        .modifier(WidgetBackgroundModifier())
     }
 
     private func pacingContent(_ pacing: PacingResult) -> some View {

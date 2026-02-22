@@ -1,6 +1,20 @@
 import SwiftUI
 import WidgetKit
 
+// MARK: - Widget Background (macOS 13 compat)
+
+struct WidgetBackgroundModifier: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(macOS 14.0, *) {
+            content.containerBackground(for: .widget) {
+                Color.black.opacity(0.85)
+            }
+        } else {
+            content.padding().background(Color.black.opacity(0.85))
+        }
+    }
+}
+
 // MARK: - Main Widget View
 
 struct UsageWidgetView: View {
@@ -23,9 +37,7 @@ struct UsageWidgetView: View {
                 placeholderView
             }
         }
-        .containerBackground(for: .widget) {
-            Color.black.opacity(0.85)
-        }
+        .modifier(WidgetBackgroundModifier())
     }
 
     // MARK: - Medium: Circular Charts
