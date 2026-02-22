@@ -20,15 +20,23 @@
 
 ## What is TokenEater?
 
-A native macOS widget that displays your Claude (Anthropic) usage in real-time:
+A native macOS widget + menu bar app that displays your Claude (Anthropic) usage in real-time:
 
 - **Session (5h)** — Sliding window with countdown to reset
 - **Weekly — All models** — Opus, Sonnet & Haiku combined
 - **Weekly — Sonnet** — Dedicated Sonnet limit
 
+### Desktop Widget
 Two widget sizes available: **medium** (circular gauges) and **large** (progress bars).
 
+### Menu Bar
+Live usage percentages directly in your menu bar — choose which metrics to display. Click to see a detailed popover with all three metrics, progress bars, and quick actions.
+
 Color-coded: green when you're comfortable, orange when usage climbs, red when approaching the limit.
+
+### Localization
+
+Fully localized in **English** and **French**. The app automatically follows your macOS system language.
 
 ## Quick Install
 
@@ -46,7 +54,7 @@ Color-coded: green when you're comfortable, orange when usage climbs, red when a
 
 **Auto-import (recommended):**
 
-1. Open TokenEater, click **Importer depuis le navigateur**
+1. Open TokenEater, click **Import from browser**
 2. Select your Chromium browser (Chrome, Arc, Brave, Edge)
 3. Authorize Keychain access when prompted — done!
 
@@ -113,13 +121,15 @@ Supports both legacy and modern (v130+) Chrome cookie encryption formats.
 ## Architecture
 
 ```
-ClaudeUsageApp/          App host (settings UI, cookie import, hidden from Dock)
+ClaudeUsageApp/          App host (settings UI, cookie import, menu bar)
 ClaudeUsageWidget/       Widget Extension (WidgetKit, 15-min refresh)
-Shared/                  Shared code (API client, models, extensions)
+Shared/                  Shared code (API client, models, localization)
+  ├── en.lproj/          English strings
+  └── fr.lproj/          French strings
 project.yml              XcodeGen configuration
 ```
 
-The host app writes configuration to the widget extension's sandbox container. The widget reads from its own container. No App Groups required.
+The host app writes configuration to the widget extension's sandbox container. The widget reads from its own container. No App Groups required. The menu bar refreshes every 5 minutes independently.
 
 ## How it works
 
