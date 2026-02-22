@@ -238,6 +238,13 @@ struct UsageWidgetView: View {
                 .font(.system(size: 12, design: .rounded))
                 .foregroundStyle(.white.opacity(0.6))
                 .multilineTextAlignment(.center)
+            Button(intent: RefreshIntent()) {
+                Image(systemName: "arrow.clockwise")
+                    .font(.system(size: 12))
+                    .foregroundStyle(.white.opacity(0.4))
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(String(localized: "widget.refresh.button"))
         }
         .padding()
     }
@@ -251,6 +258,13 @@ struct UsageWidgetView: View {
             Text("widget.loading")
                 .font(.system(size: 12, design: .rounded))
                 .foregroundStyle(.white.opacity(0.4))
+            Button(intent: RefreshIntent()) {
+                Image(systemName: "arrow.clockwise")
+                    .font(.system(size: 10))
+                    .foregroundStyle(.white.opacity(0.35))
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(String(localized: "widget.refresh.button"))
         }
     }
 
