@@ -1,3 +1,4 @@
+import AppIntents
 import SwiftUI
 import WidgetKit
 
@@ -27,6 +28,13 @@ struct PacingWidgetView: View {
                     .tracking(0.3)
                     .foregroundStyle(.white.opacity(0.5))
                 Spacer()
+                Button(intent: RefreshIntent()) {
+                    Image(systemName: "arrow.clockwise")
+                        .font(.system(size: 8))
+                        .foregroundStyle(.white.opacity(0.3))
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(String(localized: "widget.refresh.button"))
             }
 
             Spacer(minLength: 0)
@@ -112,7 +120,7 @@ struct PacingWidgetView: View {
         let days = Int(interval) / 86400
         let hours = (Int(interval) % 86400) / 3600
         if days > 0 {
-            return "\(days)j \(hours)h"
+            return String(format: String(localized: "duration.days.hours"), days, hours)
         }
         let minutes = (Int(interval) % 3600) / 60
         return "\(hours)h\(String(format: "%02d", minutes))"

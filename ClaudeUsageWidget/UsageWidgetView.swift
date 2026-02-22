@@ -1,3 +1,4 @@
+import AppIntents
 import SwiftUI
 import WidgetKit
 
@@ -87,9 +88,19 @@ struct UsageWidgetView: View {
             Spacer(minLength: 6)
 
             // Footer
-            Text(String(format: String(localized: "widget.updated"), entry.date.relativeFormatted))
-                .font(.system(size: 8, design: .rounded))
-                .foregroundStyle(.white.opacity(0.3))
+            HStack {
+                Text(String(format: String(localized: "widget.updated"), entry.date.relativeFormatted))
+                    .font(.system(size: 8, design: .rounded))
+                    .foregroundStyle(.white.opacity(0.3))
+                Spacer()
+                Button(intent: RefreshIntent()) {
+                    Image(systemName: "arrow.clockwise")
+                        .font(.system(size: 9))
+                        .foregroundStyle(.white.opacity(0.35))
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(String(localized: "widget.refresh.button"))
+            }
         }
         .padding(.horizontal, 2)
     }
@@ -163,7 +174,7 @@ struct UsageWidgetView: View {
                         guard let r = pacing.resetDate, r.timeIntervalSinceNow > 0 else { return "" }
                         let d = Int(r.timeIntervalSinceNow) / 86400
                         let h = (Int(r.timeIntervalSinceNow) % 86400) / 3600
-                        return d > 0 ? "\(d)j \(h)h" : "\(h)h"
+                        return d > 0 ? String(format: String(localized: "duration.days.hours"), d, h) : "\(h)h"
                     }(),
                     utilization: pacing.actualUsage,
                     colorOverride: {
@@ -189,12 +200,19 @@ struct UsageWidgetView: View {
                 Text(String(format: String(localized: "widget.updated"), entry.date.relativeFormatted))
                     .font(.system(size: 9, design: .rounded))
                     .foregroundStyle(.white.opacity(0.3))
+                Button(intent: RefreshIntent()) {
+                    Image(systemName: "arrow.clockwise")
+                        .font(.system(size: 9))
+                        .foregroundStyle(.white.opacity(0.35))
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(String(localized: "widget.refresh.button"))
                 Spacer()
                 HStack(spacing: 3) {
                     Circle()
                         .fill(.green.opacity(0.6))
                         .frame(width: 4, height: 4)
-                    Text("15 min")
+                    Text(String(localized: "widget.refresh.interval"))
                         .font(.system(size: 9, design: .rounded))
                         .foregroundStyle(.white.opacity(0.25))
                 }
@@ -256,7 +274,6 @@ struct UsageWidgetView: View {
     private func formatResetDate(_ date: Date?) -> String {
         guard let date = date else { return "" }
         let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "fr_FR")
         formatter.dateFormat = "EEE HH:mm"
         return formatter.string(from: date)
     }
