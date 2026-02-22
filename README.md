@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/macOS-14%2B-111?logo=apple&logoColor=white" alt="macOS 14+">
+  <img src="https://img.shields.io/badge/macOS-13%2B-111?logo=apple&logoColor=white" alt="macOS 13+">
   <img src="https://img.shields.io/badge/Swift-5.9-F05138?logo=swift&logoColor=white" alt="Swift 5.9">
   <img src="https://img.shields.io/badge/WidgetKit-native-007AFF?logo=apple&logoColor=white" alt="WidgetKit">
   <img src="https://img.shields.io/badge/Claude-Pro%20%2F%20Team-D97706" alt="Claude Pro / Team">
@@ -28,14 +28,38 @@ A native macOS widget + menu bar app that displays your Claude (Anthropic) usage
 - **Session (5h)** — Sliding window with countdown to reset
 - **Weekly — All models** — Opus, Sonnet & Haiku combined
 - **Weekly — Sonnet** — Dedicated Sonnet limit
+- **Pacing** — Are you burning through your quota or cruising? Delta display with 3 zones (chill / on track / hot)
 
-### Desktop Widget
-Two widget sizes available: **medium** (circular gauges) and **large** (progress bars).
+### Desktop Widgets
+
+Three widget options:
+- **Usage Medium** — Circular gauges for session, weekly, and pacing
+- **Usage Large** — Progress bars with full details for all metrics
+- **Pacing** — Dedicated small widget with circular gauge and ideal marker
 
 ### Menu Bar
-Live usage percentages directly in your menu bar — choose which metrics to display. Click to see a detailed popover with all three metrics, progress bars, and quick actions.
+
+Live usage percentages directly in your menu bar — choose which metrics to pin (session, weekly, sonnet, pacing). Click to see a detailed popover with progress bars, pacing delta, and quick actions.
 
 Color-coded: green when you're comfortable, orange when usage climbs, red when approaching the limit.
+
+### Notifications
+
+Automatic alerts when usage crosses thresholds:
+- **60%** — Warning to slow down
+- **85%** — Critical usage alert
+- **Reset** — Back in the green notification
+
+### Authentication
+
+Two authentication methods, auto-detected in order of priority:
+
+1. **Claude Code OAuth** (recommended) — Reads the OAuth token from Claude Code's Keychain entry. Zero configuration needed if you have Claude Code installed.
+2. **Browser cookies** — Auto-import from Chrome, Arc, Brave, or Edge. Or paste manually.
+
+### SOCKS5 Proxy
+
+For users behind a corporate firewall, TokenEater supports routing API calls through a SOCKS5 proxy (e.g. `ssh -D 1080 user@bastion`). Configure in Settings > Proxy.
 
 ### Localization
 
@@ -55,11 +79,15 @@ Fully localized in **English** and **French**. The app automatically follows you
 
 ### Configure
 
-**Auto-import (recommended):**
+**Claude Code (automatic):**
 
-1. Open TokenEater, click **Import from browser**
-2. Select your Chromium browser (Chrome, Arc, Brave, Edge)
-3. Authorize Keychain access when prompted — done!
+If you have [Claude Code](https://docs.anthropic.com/en/docs/claude-code) installed and authenticated, TokenEater detects it automatically. Just click **Connect** and you're done.
+
+**Auto-import from browser:**
+
+1. Open TokenEater, click **Connect**
+2. If no OAuth token is found, it falls back to browser cookie detection
+3. Select your Chromium browser if prompted, authorize Keychain access — done!
 
 **Manual setup:**
 
@@ -71,13 +99,13 @@ Fully localized in **English** and **French**. The app automatically follows you
 
 Then: **right-click on desktop > Edit Widgets > search "TokenEater"**
 
-> Cookies expire roughly every month. If the widget shows an error, re-import or update them manually.
+> Cookies expire roughly every month. If the widget shows an error, re-import or update them. OAuth tokens from Claude Code are refreshed automatically.
 
 ## Build from source
 
 ### Requirements
 
-- macOS 14 (Sonoma) or later
+- macOS 13 (Ventura) or later
 - Xcode 15+
 - [XcodeGen](https://github.com/yonaskolb/XcodeGen): `brew install xcodegen`
 
@@ -124,9 +152,9 @@ Supports both legacy and modern (v130+) Chrome cookie encryption formats.
 ## Architecture
 
 ```
-ClaudeUsageApp/          App host (settings UI, cookie import, menu bar)
+ClaudeUsageApp/          App host (settings UI, OAuth/cookie auth, menu bar)
 ClaudeUsageWidget/       Widget Extension (WidgetKit, 15-min refresh)
-Shared/                  Shared code (API client, models, localization)
+Shared/                  Shared code (API client, models, pacing, notifications)
   ├── en.lproj/          English strings
   └── fr.lproj/          French strings
 project.yml              XcodeGen configuration
@@ -136,14 +164,22 @@ The host app writes configuration to the widget extension's sandbox container. T
 
 ## How it works
 
-TokenEater calls the Claude usage API:
+TokenEater supports two API endpoints:
 
+**OAuth (Claude Code):**
+```
+GET https://api.anthropic.com/api/oauth/usage
+Authorization: Bearer <token>
+anthropic-beta: oauth-2025-04-20
+```
+
+**Cookies (browser):**
 ```
 GET https://claude.ai/api/organizations/{org_id}/usage
 Cookie: sessionKey=sk-ant-sid01-...
 ```
 
-The response includes `utilization` (0–100) and `resets_at` for each limit bucket. The widget refreshes every 15 minutes (WidgetKit minimum) and caches the last successful response for offline display.
+The response includes `utilization` (0–100) and `resets_at` for each limit bucket. The widget refreshes every 15 minutes (WidgetKit minimum) and caches the last successful response for offline display. If cookies expire, the client automatically falls back to OAuth if available.
 
 ## License
 
