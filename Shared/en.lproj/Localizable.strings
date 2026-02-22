@@ -46,6 +46,7 @@
 "import.nobroser" = "No Chromium browser detected";
 "import.picker.title" = "Choose a browser";
 "import.profiles" = "%d profile(s)";
+"import.expires" = "Cookies expire %@";
 
 /* Guide */
 "guide.title" = "Setup Guide";

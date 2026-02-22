@@ -21,6 +21,7 @@ enum BrowserCookieReader {
         let sessionKey: String
         let organizationID: String
         let browser: String
+        let sessionKeyExpires: Date?
     }
 
     enum ImportError: LocalizedError {
@@ -225,7 +226,7 @@ enum BrowserCookieReader {
 
         // Query claude.ai cookies
         let sql = """
-            SELECT name, encrypted_value FROM cookies
+            SELECT name, encrypted_value, expires_utc FROM cookies
             WHERE (host_key LIKE '%claude.ai' OR host_key LIKE '%claude.com')
             AND (name = 'sessionKey' OR name = 'lastActiveOrg')
         """
@@ -238,7 +239,11 @@ enum BrowserCookieReader {
 
         var sessionKey: String?
         var orgID: String?
+        var sessionExpires: Date?
         var foundCount = 0
+
+        // Chrome stores expires_utc as microseconds since 1601-01-01
+        let chromeEpochOffset: Int64 = 11_644_473_600
 
         while sqlite3_step(stmt) == SQLITE_ROW {
             guard let namePtr = sqlite3_column_text(stmt, 0) else { continue }
@@ -254,6 +259,11 @@ enum BrowserCookieReader {
             if let decrypted = decryptCookieValue(encryptedData, key: key), !decrypted.isEmpty {
                 if name == "sessionKey" {
                     sessionKey = decrypted
+                    let expiresUtc = sqlite3_column_int64(stmt, 2)
+                    if expiresUtc > 0 {
+                        let unixTimestamp = TimeInterval(expiresUtc / 1_000_000 - chromeEpochOffset)
+                        sessionExpires = Date(timeIntervalSince1970: unixTimestamp)
+                    }
                 } else if name == "lastActiveOrg" {
                     orgID = decrypted
                 }
@@ -271,7 +281,7 @@ enum BrowserCookieReader {
             return .failure(.missingCookie(hasSession: sessionKey != nil, hasOrg: orgID != nil))
         }
 
-        return .success(CookieResult(sessionKey: sessionKey!, organizationID: orgID!, browser: browserName))
+        return .success(CookieResult(sessionKey: sessionKey!, organizationID: orgID!, browser: browserName, sessionKeyExpires: sessionExpires))
     }
 
     private static func decryptCookieValue(_ data: Data, key: Data) -> String? {

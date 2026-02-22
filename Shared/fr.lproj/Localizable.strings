@@ -46,6 +46,7 @@
 "import.nobroser" = "Aucun navigateur Chromium detecte";
 "import.picker.title" = "Choisir un navigateur";
 "import.profiles" = "%d profil(s)";
+"import.expires" = "Cookies expirent %@";
 
 /* Guide */
 "guide.title" = "Configuration";

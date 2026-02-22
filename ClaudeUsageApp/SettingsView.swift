@@ -555,7 +555,12 @@ struct SettingsView: View {
                     sessionKey = cookies.sessionKey
                     organizationID = cookies.organizationID
                     saveConfig()
-                    importMessage = String(format: String(localized: "import.success"), cookies.browser)
+                    var msg = String(format: String(localized: "import.success"), cookies.browser)
+                    if let expires = cookies.sessionKeyExpires {
+                        let formatted = expires.formatted(.relative(presentation: .named))
+                        msg += " · " + String(format: String(localized: "import.expires"), formatted)
+                    }
+                    importMessage = msg
                     importSuccess = true
                     showBrowserPicker = false
                 case .failure(let error):
