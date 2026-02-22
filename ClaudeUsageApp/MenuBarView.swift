@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import WidgetKit
 
 // MARK: - Metric ID
 
@@ -7,12 +8,14 @@ enum MetricID: String, CaseIterable {
     case fiveHour = "fiveHour"
     case sevenDay = "sevenDay"
     case sonnet = "sonnet"
+    case pacing = "pacing"
 
     var label: String {
         switch self {
         case .fiveHour: return String(localized: "metric.session")
         case .sevenDay: return String(localized: "metric.weekly")
         case .sonnet: return String(localized: "metric.sonnet")
+        case .pacing: return String(localized: "pacing.label")
         }
     }
 
@@ -21,8 +24,14 @@ enum MetricID: String, CaseIterable {
         case .fiveHour: return "5h"
         case .sevenDay: return "7d"
         case .sonnet: return "S"
+        case .pacing: return "P"
         }
     }
+}
+
+enum PacingDisplayMode: String {
+    case dot
+    case dotDelta
 }
 
 // MARK: - ViewModel
@@ -33,6 +42,9 @@ final class MenuBarViewModel: ObservableObject {
     @Published var sevenDayPct: Int = 0
     @Published var sonnetPct: Int = 0
     @Published var fiveHourReset: String = ""
+    @Published var pacingDelta: Int = 0
+    @Published var pacingZone: PacingZone = .onTrack
+    @Published var pacingResult: PacingResult?
     @Published var lastUpdate: Date?
     @Published var isLoading = false
     @Published var hasError = false
@@ -42,6 +54,7 @@ final class MenuBarViewModel: ObservableObject {
     }
 
     private var timer: Timer?
+    private var displaySettingsObserver: Any?
 
     init() {
         // Load pinned metrics from UserDefaults (default: 5h + 7d)
@@ -50,10 +63,36 @@ final class MenuBarViewModel: ObservableObject {
         } else {
             pinnedMetrics = [.fiveHour, .sevenDay]
         }
-        hasConfig = ClaudeAPIClient.shared.config != nil
+        hasConfig = ClaudeAPIClient.shared.resolveAuthMethod() != nil
         loadCached()
         startRefreshTimer()
+        UsageNotificationManager.requestPermission()
+        // Force WidgetKit to discover all widgets including PacingWidget
+        WidgetKit.WidgetCenter.shared.reloadAllTimelines()
         Task { await refresh() }
+
+        // Observe display settings changes from SettingsView
+        displaySettingsObserver = NotificationCenter.default.addObserver(
+            forName: .displaySettingsDidChange,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            guard let self else { return }
+            Task { @MainActor in
+                self.reloadDisplaySettings()
+            }
+        }
+    }
+
+    func reloadDisplaySettings() {
+        if let saved = UserDefaults.standard.stringArray(forKey: "pinnedMetrics") {
+            let newMetrics = Set(saved.compactMap { MetricID(rawValue: $0) })
+            if newMetrics != pinnedMetrics {
+                pinnedMetrics = newMetrics
+            }
+        }
+        // Force re-render for pacingDisplayMode changes
+        objectWillChange.send()
     }
 
     func toggleMetric(_ metric: MetricID) {
@@ -76,7 +115,12 @@ final class MenuBarViewModel: ObservableObject {
         case .fiveHour: return fiveHourPct
         case .sevenDay: return sevenDayPct
         case .sonnet: return sonnetPct
+        case .pacing: return pacingDelta
         }
+    }
+
+    var pacingDisplayMode: PacingDisplayMode {
+        PacingDisplayMode(rawValue: UserDefaults.standard.string(forKey: "pacingDisplayMode") ?? "dotDelta") ?? .dotDelta
     }
 
     var menuBarImage: NSImage {
@@ -87,7 +131,7 @@ final class MenuBarViewModel: ObservableObject {
     }
 
     func refresh() async {
-        guard ClaudeAPIClient.shared.config != nil else {
+        guard ClaudeAPIClient.shared.resolveAuthMethod() != nil else {
             hasConfig = false
             return
         }
@@ -99,13 +143,18 @@ final class MenuBarViewModel: ObservableObject {
             update(from: usage)
             hasError = false
             lastUpdate = Date()
+            UsageNotificationManager.checkThresholds(
+                fiveHour: fiveHourPct,
+                sevenDay: sevenDayPct,
+                sonnet: sonnetPct
+            )
         } catch {
             hasError = true
         }
     }
 
     func reloadConfig() {
-        hasConfig = ClaudeAPIClient.shared.config != nil
+        hasConfig = ClaudeAPIClient.shared.resolveAuthMethod() != nil
         Task { await refresh() }
     }
 
@@ -135,6 +184,12 @@ final class MenuBarViewModel: ObservableObject {
         } else {
             fiveHourReset = ""
         }
+
+        if let pacing = PacingCalculator.calculate(from: usage) {
+            pacingDelta = Int(pacing.delta)
+            pacingZone = pacing.zone
+            pacingResult = pacing
+        }
     }
 
     private func startRefreshTimer() {
@@ -160,14 +215,31 @@ final class MenuBarViewModel: ObservableObject {
             .foregroundColor: NSColor.tertiaryLabelColor,
         ]
 
-        let ordered: [MetricID] = [.fiveHour, .sevenDay, .sonnet].filter { pinnedMetrics.contains($0) }
+        let ordered: [MetricID] = [.fiveHour, .sevenDay, .sonnet, .pacing].filter { pinnedMetrics.contains($0) }
         for (i, metric) in ordered.enumerated() {
             if i > 0 {
                 str.append(NSAttributedString(string: "  ", attributes: sepAttrs))
             }
-            let value = pct(for: metric)
-            str.append(NSAttributedString(string: "\(metric.shortLabel) ", attributes: labelAttrs))
-            str.append(NSAttributedString(string: "\(value)%", attributes: pctAttrs(value)))
+            if metric == .pacing {
+                let dotColor = nsColorForZone(pacingZone)
+                let dotAttrs: [NSAttributedString.Key: Any] = [
+                    .font: NSFont.systemFont(ofSize: 11, weight: .bold),
+                    .foregroundColor: dotColor,
+                ]
+                str.append(NSAttributedString(string: "\u{25CF}", attributes: dotAttrs))
+                if pacingDisplayMode == .dotDelta {
+                    let sign = pacingDelta >= 0 ? "+" : ""
+                    let deltaAttrs: [NSAttributedString.Key: Any] = [
+                        .font: NSFont.monospacedDigitSystemFont(ofSize: 10, weight: .bold),
+                        .foregroundColor: dotColor,
+                    ]
+                    str.append(NSAttributedString(string: " \(sign)\(pacingDelta)%", attributes: deltaAttrs))
+                }
+            } else {
+                let value = pct(for: metric)
+                str.append(NSAttributedString(string: "\(metric.shortLabel) ", attributes: labelAttrs))
+                str.append(NSAttributedString(string: "\(value)%", attributes: pctAttrs(value)))
+            }
         }
 
         let size = str.size()
@@ -208,6 +280,14 @@ final class MenuBarViewModel: ObservableObject {
         if pct < 85 { return NSColor(red: 0.98, green: 0.60, blue: 0.09, alpha: 1) } // orange
         return NSColor(red: 0.94, green: 0.27, blue: 0.27, alpha: 1) // red
     }
+
+    private func nsColorForZone(_ zone: PacingZone) -> NSColor {
+        switch zone {
+        case .chill: return NSColor(red: 0.13, green: 0.77, blue: 0.29, alpha: 1)
+        case .onTrack: return NSColor(red: 0.04, green: 0.52, blue: 1.0, alpha: 1)
+        case .hot: return NSColor(red: 0.94, green: 0.27, blue: 0.27, alpha: 1)
+        }
+    }
 }
 
 // MARK: - Popover View
@@ -215,7 +295,6 @@ final class MenuBarViewModel: ObservableObject {
 struct MenuBarPopoverView: View {
     @ObservedObject var viewModel: MenuBarViewModel
     @Environment(\.openWindow) private var openWindow
-    @AppStorage("showMenuBar") private var showMenuBar = true
 
     var body: some View {
         VStack(spacing: 0) {
@@ -243,6 +322,64 @@ struct MenuBarPopoverView: View {
             }
             .padding(.horizontal, 16)
 
+            // Pacing section
+            if let pacing = viewModel.pacingResult {
+                Divider()
+                    .overlay(Color.white.opacity(0.08))
+                    .padding(.vertical, 8)
+                    .padding(.horizontal, 16)
+
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack(spacing: 6) {
+                        Button {
+                            withAnimation(.easeInOut(duration: 0.15)) {
+                                viewModel.toggleMetric(.pacing)
+                            }
+                        } label: {
+                            Image(systemName: viewModel.pinnedMetrics.contains(.pacing) ? "pin.fill" : "pin")
+                                .font(.system(size: 9))
+                                .foregroundStyle(viewModel.pinnedMetrics.contains(.pacing) ? colorForZone(pacing.zone) : .white.opacity(0.2))
+                        }
+                        .buttonStyle(.plain)
+                        .help(viewModel.pinnedMetrics.contains(.pacing) ? Text(String(localized: "menubar.hide")) : Text(String(localized: "menubar.show")))
+
+                        Text(String(localized: "pacing.label"))
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundStyle(.white.opacity(0.5))
+                        Spacer()
+                        let sign = pacing.delta >= 0 ? "+" : ""
+                        Text("\(sign)\(Int(pacing.delta))%")
+                            .font(.system(size: 13, weight: .black, design: .rounded))
+                            .foregroundStyle(colorForZone(pacing.zone))
+                    }
+
+                    // Progress bar with ideal marker
+                    GeometryReader { geo in
+                        ZStack(alignment: .leading) {
+                            RoundedRectangle(cornerRadius: 2)
+                                .fill(Color.white.opacity(0.06))
+                                .frame(height: 4)
+
+                            RoundedRectangle(cornerRadius: 2)
+                                .fill(gradientForZone(pacing.zone))
+                                .frame(width: max(0, geo.size.width * CGFloat(min(pacing.actualUsage, 100)) / 100), height: 4)
+
+                            // Ideal marker
+                            Rectangle()
+                                .fill(Color.white.opacity(0.5))
+                                .frame(width: 2, height: 10)
+                                .offset(x: geo.size.width * CGFloat(min(pacing.expectedUsage, 100)) / 100 - 1)
+                        }
+                    }
+                    .frame(height: 10)
+
+                    Text(pacing.message)
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundStyle(colorForZone(pacing.zone).opacity(0.8))
+                }
+                .padding(.horizontal, 16)
+            }
+
             // Last update
             if let date = viewModel.lastUpdate {
                 let formattedDate = date.formatted(.relative(presentation: .named))
@@ -263,7 +400,9 @@ struct MenuBarPopoverView: View {
                 }
                 actionButton(icon: "gear", label: String(localized: "menubar.settings")) {
                     NSApp.activate(ignoringOtherApps: true)
-                    if let window = NSApp.windows.first(where: { $0.title.contains("TokenEater") || $0.contentView != nil }) {
+                    if let window = NSApp.windows.first(where: {
+                        ($0.identifier?.rawValue ?? "").contains("settings")
+                    }) {
                         window.makeKeyAndOrderFront(nil)
                     } else {
                         openWindow(id: "settings")
@@ -275,19 +414,6 @@ struct MenuBarPopoverView: View {
             }
             .padding(.horizontal, 8)
             .padding(.vertical, 6)
-
-            Divider()
-                .overlay(Color.white.opacity(0.08))
-
-            Toggle(isOn: $showMenuBar) {
-                Text("menubar.show")
-                    .font(.system(size: 10))
-            }
-            .toggleStyle(.switch)
-            .controlSize(.mini)
-            .padding(.horizontal, 16)
-            .padding(.vertical, 8)
-            .foregroundStyle(.white.opacity(0.5))
         }
         .frame(width: 260)
         .background(Color(nsColor: NSColor(red: 0.08, green: 0.08, blue: 0.09, alpha: 1)))
@@ -320,9 +446,10 @@ struct MenuBarPopoverView: View {
                         viewModel.toggleMetric(id)
                     }
                 } label: {
-                    Image(systemName: isPinned ? "menubar.rectangle" : "menubar.dock.rectangle")
+                    Image(systemName: isPinned ? "pin.fill" : "pin")
                         .font(.system(size: 9))
                         .foregroundStyle(isPinned ? colorForPct(pct) : .white.opacity(0.2))
+                        .rotationEffect(.degrees(isPinned ? 0 : 45))
                 }
                 .buttonStyle(.plain)
                 .help(isPinned ? Text(String(localized: "menubar.hide")) : Text(String(localized: "menubar.show")))
@@ -354,6 +481,25 @@ struct MenuBarPopoverView: View {
                 }
             }
             .frame(height: 4)
+        }
+    }
+
+    private func colorForZone(_ zone: PacingZone) -> Color {
+        switch zone {
+        case .chill: return Color(red: 0.13, green: 0.77, blue: 0.29)
+        case .onTrack: return Color(red: 0.04, green: 0.52, blue: 1.0)
+        case .hot: return Color(red: 0.94, green: 0.27, blue: 0.27)
+        }
+    }
+
+    private func gradientForZone(_ zone: PacingZone) -> LinearGradient {
+        switch zone {
+        case .chill:
+            return LinearGradient(colors: [Color(red: 0.13, green: 0.77, blue: 0.29), Color(red: 0.29, green: 0.87, blue: 0.50)], startPoint: .leading, endPoint: .trailing)
+        case .onTrack:
+            return LinearGradient(colors: [Color(red: 0.04, green: 0.52, blue: 1.0), Color(red: 0.25, green: 0.61, blue: 1.0)], startPoint: .leading, endPoint: .trailing)
+        case .hot:
+            return LinearGradient(colors: [Color(red: 0.94, green: 0.27, blue: 0.27), Color(red: 0.86, green: 0.15, blue: 0.15)], startPoint: .leading, endPoint: .trailing)
         }
     }
 

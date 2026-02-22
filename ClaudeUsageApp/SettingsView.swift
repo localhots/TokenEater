@@ -24,9 +24,12 @@ struct SettingsView: View {
 
     @AppStorage("showMenuBar") private var showMenuBar = true
 
+    @AppStorage("pacingDisplayMode") private var pacingDisplayMode = "dotDelta"
+
     @State private var pinnedFiveHour = true
     @State private var pinnedSevenDay = true
     @State private var pinnedSonnet = false
+    @State private var pinnedPacing = false
 
     // Colors kept for guide/browser picker sheets
     private let sheetBg = Color(hex: "#141416")
@@ -211,10 +214,18 @@ struct SettingsView: View {
                 Toggle("metric.session", isOn: $pinnedFiveHour)
                 Toggle("metric.weekly", isOn: $pinnedSevenDay)
                 Toggle("metric.sonnet", isOn: $pinnedSonnet)
+                Toggle("pacing.label", isOn: $pinnedPacing)
             } header: {
                 Text("settings.metrics.pinned")
             } footer: {
                 Text("settings.metrics.pinned.footer")
+            }
+            Section("settings.pacing.display") {
+                Picker("Mode", selection: $pacingDisplayMode) {
+                    Text("settings.pacing.dot").tag("dot")
+                    Text("settings.pacing.dotdelta").tag("dotDelta")
+                }
+                .pickerStyle(.radioGroup)
             }
         }
         .formStyle(.grouped)
@@ -222,6 +233,10 @@ struct SettingsView: View {
         .onChange(of: pinnedFiveHour) { savePinnedMetrics() }
         .onChange(of: pinnedSevenDay) { savePinnedMetrics() }
         .onChange(of: pinnedSonnet) { savePinnedMetrics() }
+        .onChange(of: pinnedPacing) { savePinnedMetrics() }
+        .onChange(of: pacingDisplayMode) {
+            NotificationCenter.default.post(name: .displaySettingsDidChange, object: nil)
+        }
     }
 
     // MARK: - Guide Sheet
@@ -472,6 +487,7 @@ struct SettingsView: View {
             pinnedFiveHour = set.contains(MetricID.fiveHour.rawValue)
             pinnedSevenDay = set.contains(MetricID.sevenDay.rawValue)
             pinnedSonnet = set.contains(MetricID.sonnet.rawValue)
+            pinnedPacing = set.contains(MetricID.pacing.rawValue)
         }
     }
 
@@ -480,6 +496,7 @@ struct SettingsView: View {
         if pinnedFiveHour { metrics.append(MetricID.fiveHour.rawValue) }
         if pinnedSevenDay { metrics.append(MetricID.sevenDay.rawValue) }
         if pinnedSonnet { metrics.append(MetricID.sonnet.rawValue) }
+        if pinnedPacing { metrics.append(MetricID.pacing.rawValue) }
         if metrics.isEmpty { metrics.append(MetricID.fiveHour.rawValue); pinnedFiveHour = true }
         UserDefaults.standard.set(metrics, forKey: "pinnedMetrics")
         NotificationCenter.default.post(name: .displaySettingsDidChange, object: nil)

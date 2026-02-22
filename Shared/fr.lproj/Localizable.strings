@@ -43,6 +43,9 @@
 "settings.metrics.pinned" = "Métriques épinglées";
 "settings.metrics.pinned.footer" = "Choisissez les métriques affichées dans la barre de menu.";
 "settings.manual" = "Identifiants manuels";
+"settings.pacing.display" = "Affichage rythme";
+"settings.pacing.dot" = "Point seul";
+"settings.pacing.dotdelta" = "Point + delta (%)";
 
 /* Connect */
 "connect.button" = "Connexion";
@@ -101,3 +104,21 @@
 "test.success" = "Connexion OK — Session : %d%%";
 "test.expired" = "Session expirée ou invalide (HTTP %d)";
 "test.http" = "Erreur HTTP %d";
+
+/* Pacing */
+"pacing.chill.1" = "Tranquille, t'as du stock";
+"pacing.chill.2" = "Claude t'attend, envoie du lourd";
+"pacing.chill.3" = "Mode cruise activé";
+"pacing.ontrack.1" = "Pile dans le rythme";
+"pacing.ontrack.2" = "Steady as she goes";
+"pacing.ontrack.3" = "Tu gères";
+"pacing.hot.1" = "Doucement cowboy";
+"pacing.hot.2" = "Tu flambes";
+"pacing.hot.3" = "Lève le pied";
+"pacing.label" = "Rythme";
+"pacing.reset" = "reset %@";
+
+/* Notifications */
+"notif.orange.body" = "Tu dépasses 60% — lève le pied";
+"notif.red.body" = "Usage critique — limite presque atteinte";
+"notif.green.body" = "Usage réinitialisé — t'es de retour dans le vert";

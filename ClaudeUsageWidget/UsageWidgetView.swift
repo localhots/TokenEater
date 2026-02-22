@@ -67,12 +67,8 @@ struct UsageWidgetView: View {
                         utilization: sevenDay.utilization
                     )
                 }
-                if let sonnet = usage.sevenDaySonnet {
-                    CircularUsageView(
-                        label: String(localized: "widget.sonnet"),
-                        resetInfo: formatResetDate(sonnet.resetsAtDate),
-                        utilization: sonnet.utilization
-                    )
+                if let pacing = PacingCalculator.calculate(from: usage) {
+                    CircularPacingView(pacing: pacing)
                 }
             }
 
@@ -89,7 +85,7 @@ struct UsageWidgetView: View {
     // MARK: - Large: Expanded View
 
     private func largeUsageContent(_ usage: UsageResponse) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
+        VStack(alignment: .leading, spacing: 12) {
             // Header
             HStack(alignment: .center) {
                 Image("WidgetLogo")
@@ -110,7 +106,7 @@ struct UsageWidgetView: View {
                     .foregroundStyle(.white.opacity(0.4))
                 }
             }
-            .padding(.bottom, 18)
+            .padding(.bottom, 8)
 
             // Session (5h)
             if let fiveHour = usage.fiveHour {
@@ -123,8 +119,6 @@ struct UsageWidgetView: View {
                 )
             }
 
-            Spacer()
-
             // Weekly — All models
             if let sevenDay = usage.sevenDay {
                 LargeUsageBarView(
@@ -135,8 +129,6 @@ struct UsageWidgetView: View {
                     utilization: sevenDay.utilization
                 )
             }
-
-            Spacer()
 
             // Weekly — Sonnet
             if let sonnet = usage.sevenDaySonnet {
@@ -149,13 +141,36 @@ struct UsageWidgetView: View {
                 )
             }
 
-            Spacer()
+            // Pacing
+            if let pacing = PacingCalculator.calculate(from: usage) {
+                LargeUsageBarView(
+                    icon: "gauge.with.needle",
+                    label: String(localized: "pacing.label"),
+                    subtitle: pacing.message,
+                    resetInfo: {
+                        guard let r = pacing.resetDate, r.timeIntervalSinceNow > 0 else { return "" }
+                        let d = Int(r.timeIntervalSinceNow) / 86400
+                        let h = (Int(r.timeIntervalSinceNow) % 86400) / 3600
+                        return d > 0 ? "\(d)j \(h)h" : "\(h)h"
+                    }(),
+                    utilization: pacing.actualUsage,
+                    colorOverride: {
+                        switch pacing.zone {
+                        case .chill: return Color(hex: "#22C55E")
+                        case .onTrack: return Color(hex: "#0A84FF")
+                        case .hot: return Color(hex: "#EF4444")
+                        }
+                    }()
+                )
+            }
+
+            Spacer(minLength: 0)
 
             // Footer
             Rectangle()
                 .fill(.white.opacity(0.06))
                 .frame(height: 1)
-                .padding(.bottom, 8)
+                .padding(.bottom, 4)
 
             HStack {
                 Text(String(format: String(localized: "widget.updated"), entry.date.relativeFormatted))
@@ -292,6 +307,71 @@ struct CircularUsageView: View {
     }
 }
 
+// MARK: - Circular Pacing View (Medium widget)
+
+struct CircularPacingView: View {
+    let pacing: PacingResult
+
+    private var ringColor: Color {
+        switch pacing.zone {
+        case .chill: return Color(hex: "#22C55E")
+        case .onTrack: return Color(hex: "#0A84FF")
+        case .hot: return Color(hex: "#EF4444")
+        }
+    }
+
+    private var ringGradient: LinearGradient {
+        switch pacing.zone {
+        case .chill:
+            return LinearGradient(colors: [Color(hex: "#22C55E"), Color(hex: "#4ADE80")], startPoint: .topLeading, endPoint: .bottomTrailing)
+        case .onTrack:
+            return LinearGradient(colors: [Color(hex: "#0A84FF"), Color(hex: "#409CFF")], startPoint: .topLeading, endPoint: .bottomTrailing)
+        case .hot:
+            return LinearGradient(colors: [Color(hex: "#EF4444"), Color(hex: "#DC2626")], startPoint: .topLeading, endPoint: .bottomTrailing)
+        }
+    }
+
+    var body: some View {
+        VStack(spacing: 5) {
+            ZStack {
+                Circle()
+                    .stroke(.white.opacity(0.08), lineWidth: 4.5)
+
+                Circle()
+                    .trim(from: 0, to: min(pacing.actualUsage, 100) / 100)
+                    .stroke(ringGradient, style: StrokeStyle(lineWidth: 4.5, lineCap: .round))
+                    .rotationEffect(.degrees(-90))
+
+                // Ideal marker on the ring
+                let angle = (min(pacing.expectedUsage, 100) / 100) * 360 - 90
+                Circle()
+                    .fill(Color.white.opacity(0.7))
+                    .frame(width: 4, height: 4)
+                    .offset(x: 25 * cos(angle * .pi / 180), y: 25 * sin(angle * .pi / 180))
+
+                let sign = pacing.delta >= 0 ? "+" : ""
+                Text("\(sign)\(Int(pacing.delta))%")
+                    .font(.system(size: 10, weight: .black, design: .rounded))
+                    .monospacedDigit()
+                    .foregroundStyle(ringColor)
+            }
+            .frame(width: 50, height: 50)
+
+            VStack(spacing: 2) {
+                Text("pacing.label")
+                    .font(.system(size: 10, weight: .bold))
+                    .tracking(0.2)
+                    .foregroundStyle(.white.opacity(0.85))
+                Text(pacing.message)
+                    .font(.system(size: 7, weight: .medium))
+                    .foregroundStyle(ringColor.opacity(0.7))
+                    .lineLimit(1)
+            }
+        }
+        .frame(maxWidth: .infinity)
+    }
+}
+
 // MARK: - Large Usage Bar View
 
 struct LargeUsageBarView: View {
@@ -300,8 +380,12 @@ struct LargeUsageBarView: View {
     let subtitle: String
     let resetInfo: String
     let utilization: Double
+    var colorOverride: Color? = nil
 
     private var barGradient: LinearGradient {
+        if let color = colorOverride {
+            return LinearGradient(colors: [color, color.opacity(0.8)], startPoint: .leading, endPoint: .trailing)
+        }
         if utilization >= 85 {
             return LinearGradient(
                 colors: [Color(hex: "#EF4444"), Color(hex: "#DC2626")],
@@ -321,6 +405,7 @@ struct LargeUsageBarView: View {
     }
 
     private var accentColor: Color {
+        if let color = colorOverride { return color }
         if utilization >= 85 {
             return Color(hex: "#EF4444")
         } else if utilization >= 60 {

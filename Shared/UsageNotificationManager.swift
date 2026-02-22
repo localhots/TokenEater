@@ -1,0 +1,87 @@
+import UserNotifications
+import Foundation
+
+enum UsageLevel: Int, Comparable {
+    case green = 0   // < 60%
+    case orange = 1  // 60-84%
+    case red = 2     // >= 85%
+
+    static func < (lhs: UsageLevel, rhs: UsageLevel) -> Bool {
+        lhs.rawValue < rhs.rawValue
+    }
+
+    static func from(pct: Int) -> UsageLevel {
+        if pct >= 85 { return .red }
+        if pct >= 60 { return .orange }
+        return .green
+    }
+}
+
+enum UsageNotificationManager {
+    private static let center = UNUserNotificationCenter.current()
+
+    static func requestPermission() {
+        center.requestAuthorization(options: [.alert, .sound]) { _, _ in }
+    }
+
+    static func checkThresholds(fiveHour: Int, sevenDay: Int, sonnet: Int) {
+        check(metric: "fiveHour", label: String(localized: "metric.session"), pct: fiveHour)
+        check(metric: "sevenDay", label: String(localized: "metric.weekly"), pct: sevenDay)
+        check(metric: "sonnet", label: String(localized: "metric.sonnet"), pct: sonnet)
+    }
+
+    private static func check(metric: String, label: String, pct: Int) {
+        let key = "lastLevel_\(metric)"
+        let previousRaw = UserDefaults.standard.integer(forKey: key)
+        let previous = UsageLevel(rawValue: previousRaw) ?? .green
+        let current = UsageLevel.from(pct: pct)
+
+        // Only notify on transitions
+        guard current != previous else { return }
+        UserDefaults.standard.set(current.rawValue, forKey: key)
+
+        if current > previous {
+            // Escalation: green→orange, green→red, orange→red
+            notifyEscalation(metric: metric, label: label, pct: pct, level: current)
+        } else if current == .green && previous > .green {
+            // Recovery: back to green
+            notifyRecovery(metric: metric, label: label, pct: pct)
+        }
+    }
+
+    private static func notifyEscalation(metric: String, label: String, pct: Int, level: UsageLevel) {
+        let content = UNMutableNotificationContent()
+        content.sound = .default
+
+        switch level {
+        case .orange:
+            content.title = "⚠️ \(label) — \(pct)%"
+            content.body = String(localized: "notif.orange.body")
+        case .red:
+            content.title = "🔴 \(label) — \(pct)%"
+            content.body = String(localized: "notif.red.body")
+        case .green:
+            return
+        }
+
+        send(id: "escalation_\(metric)", content: content)
+    }
+
+    private static func notifyRecovery(metric: String, label: String, pct: Int) {
+        let content = UNMutableNotificationContent()
+        content.title = "🟢 \(label) — \(pct)%"
+        content.body = String(localized: "notif.green.body")
+        content.sound = .default
+
+        send(id: "recovery_\(metric)", content: content)
+    }
+
+    private static func send(id: String, content: UNMutableNotificationContent) {
+        let request = UNNotificationRequest(
+            identifier: id,
+            content: content,
+            trigger: nil // Immediate
+        )
+        center.add(request)
+    }
+}
