@@ -69,8 +69,8 @@ jobs:
           git clone "https://x-access-token:${TAP_TOKEN}@github.com/AThevon/homebrew-tokeneater.git" /tmp/tap
           cd /tmp/tap
 
-          sed -i "s/version \".*\"/version \"${NEW_VERSION}\"/" Casks/tokeneater.rb
-          sed -i "s/sha256 \".*\"/sha256 \"${NEW_SHA}\"/" Casks/tokeneater.rb
+          sed -i '' "s/version \".*\"/version \"${NEW_VERSION}\"/" Casks/tokeneater.rb
+          sed -i '' "s/sha256 \".*\"/sha256 \"${NEW_SHA}\"/" Casks/tokeneater.rb
 
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
