@@ -76,6 +76,13 @@ brew install --cask tokeneater
 
 To update later: `brew upgrade tokeneater`
 
+> **Already installed manually?** Switch to Homebrew for automatic updates:
+> ```bash
+> rm -rf /Applications/TokenEater.app
+> brew tap AThevon/tokeneater
+> brew install --cask tokeneater
+> ```
+
 ### Manual Download
 
 1. Go to [**Releases**](../../releases/latest) and download `TokenEater.dmg`
