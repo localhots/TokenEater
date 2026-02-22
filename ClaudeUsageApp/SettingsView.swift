@@ -1,11 +1,15 @@
 import SwiftUI
 import WidgetKit
 
+extension Notification.Name {
+    static let displaySettingsDidChange = Notification.Name("displaySettingsDidChange")
+}
+
 struct SettingsView: View {
     var onConfigSaved: (() -> Void)?
 
-    @State private var sessionKey: String = ""
-    @State private var organizationID: String = ""
+    @State private var sessionKey = ""
+    @State private var organizationID = ""
     @State private var testResult: ConnectionTestResult?
     @State private var isTesting = false
     @State private var showSessionKey = false
@@ -15,326 +19,218 @@ struct SettingsView: View {
     @State private var importSuccess = false
     @State private var detectedBrowsers: [DetectedBrowser] = []
     @State private var showBrowserPicker = false
+    @State private var authMethodLabel = ""
+    @State private var isOAuth = false
 
-    private let bg = Color(hex: "#141416")
-    private let cardBg = Color.white.opacity(0.04)
+    @AppStorage("showMenuBar") private var showMenuBar = true
+
+    @State private var pinnedFiveHour = true
+    @State private var pinnedSevenDay = true
+    @State private var pinnedSonnet = false
+
+    // Colors kept for guide/browser picker sheets
+    private let sheetBg = Color(hex: "#141416")
+    private let sheetCard = Color.white.opacity(0.04)
     private let accent = Color(hex: "#FF9F0A")
     private let accentRed = Color(hex: "#FF453A")
-    private let green = Color(hex: "#32D74B")
-    private let subtle = Color.white.opacity(0.4)
-    private let faint = Color.white.opacity(0.06)
 
     var body: some View {
-        ZStack {
-            bg.ignoresSafeArea()
-
-            VStack(spacing: 0) {
-                headerSection
-                    .padding(.top, 28)
-                    .padding(.bottom, 20)
-
-                VStack(spacing: 16) {
-                    credentialsCard
-                    actionsRow
-                    if let result = testResult {
-                        resultBanner(result)
-                    }
+        VStack(spacing: 0) {
+            // App header
+            HStack(spacing: 12) {
+                Image(nsImage: NSImage(named: "AppIcon") ?? NSApp.applicationIconImage)
+                    .resizable()
+                    .frame(width: 40, height: 40)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("TokenEater")
+                        .font(.system(size: 16, weight: .bold, design: .rounded))
+                    Text("settings.subtitle")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
-                .padding(.horizontal, 28)
+                Spacer()
+                Text("v1.1.0")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 16)
+            .padding(.bottom, 8)
 
-                Spacer(minLength: 0)
-
-                footerSection
-                    .padding(.horizontal, 28)
-                    .padding(.bottom, 20)
+            TabView {
+                connectionTab
+                    .tabItem {
+                        Label("settings.tab.connection", systemImage: "bolt.horizontal.fill")
+                    }
+                displayTab
+                    .tabItem {
+                        Label("settings.tab.display", systemImage: "menubar.rectangle")
+                    }
             }
         }
-        .frame(width: 460, height: 520)
+        .frame(width: 500, height: isOAuth ? 400 : 480)
         .onAppear { loadConfig() }
-        .sheet(isPresented: $showGuide) {
-            guideSheet
-        }
-        .sheet(isPresented: $showBrowserPicker) {
-            browserPickerSheet
-        }
+        .sheet(isPresented: $showGuide) { guideSheet }
+        .sheet(isPresented: $showBrowserPicker) { browserPickerSheet }
     }
 
-    // MARK: - Header
+    // MARK: - Connection Tab
 
-    private var headerSection: some View {
-        VStack(spacing: 8) {
-            Image(nsImage: NSApp.applicationIconImage)
-                .resizable()
-                .frame(width: 56, height: 56)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
-
-            Text("TokenEater")
-                .font(.system(size: 22, weight: .bold, design: .rounded))
-                .foregroundStyle(.white)
-
-            Text("settings.subtitle")
-                .font(.system(size: 12, weight: .medium))
-                .foregroundStyle(subtle)
-        }
-        .frame(maxWidth: .infinity)
-    }
-
-    // MARK: - Credentials Card
-
-    private var credentialsCard: some View {
-        VStack(spacing: 14) {
-            // Auto-import from browser
-            autoImportSection
-
-            Rectangle()
-                .fill(faint)
-                .frame(height: 1)
-
-            // Session Key
-            VStack(alignment: .leading, spacing: 6) {
+    private var connectionTab: some View {
+        Form {
+            Section {
                 HStack {
-                    Text("settings.sessionkey")
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(.white.opacity(0.6))
-                        .tracking(0.5)
-                        .textCase(.uppercase)
-                    Spacer()
-                    Button {
-                        showSessionKey.toggle()
-                    } label: {
-                        Image(systemName: showSessionKey ? "eye.slash" : "eye")
-                            .font(.system(size: 11))
-                            .foregroundStyle(.white.opacity(0.3))
+                    if isImporting {
+                        ProgressView()
+                            .controlSize(.small)
                     }
-                    .buttonStyle(.plain)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("connect.button")
+                            .fontWeight(.medium)
+                        Text("connect.subtitle")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    if !authMethodLabel.isEmpty {
+                        Text(authMethodLabel)
+                            .font(.caption2)
+                            .fontWeight(.medium)
+                            .foregroundStyle(.green)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 3)
+                            .background(.green.opacity(0.12))
+                            .clipShape(Capsule())
+                    }
+                    Button("connect.button") {
+                        connectAutoDetect()
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(isImporting)
                 }
 
-                Group {
-                    if showSessionKey {
-                        TextField("sk-ant-sid01-...", text: $sessionKey)
-                    } else {
-                        SecureField("sk-ant-sid01-...", text: $sessionKey)
-                    }
+                if let message = importMessage {
+                    Label(message, systemImage: importSuccess ? "checkmark.circle.fill" : "info.circle.fill")
+                        .font(.caption)
+                        .foregroundStyle(importSuccess ? .green : .orange)
                 }
-                .textFieldStyle(.plain)
-                .font(.system(size: 13, design: .monospaced))
-                .foregroundStyle(.white.opacity(0.9))
-                .padding(.horizontal, 12)
-                .padding(.vertical, 10)
-                .background(
-                    RoundedRectangle(cornerRadius: 8)
-                        .fill(Color.white.opacity(0.06))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 8)
-                                .stroke(Color.white.opacity(0.08), lineWidth: 1)
-                        )
-                )
             }
 
-            // Separator
-            Rectangle()
-                .fill(faint)
-                .frame(height: 1)
+            if !isOAuth {
+                Section {
+                    LabeledContent("settings.sessionkey") {
+                        HStack(spacing: 6) {
+                            Group {
+                                if showSessionKey {
+                                    TextField("sk-ant-sid01-...", text: $sessionKey)
+                                } else {
+                                    SecureField("sk-ant-sid01-...", text: $sessionKey)
+                                }
+                            }
+                            .textFieldStyle(.roundedBorder)
+                            .font(.system(.body, design: .monospaced))
 
-            // Org ID
-            VStack(alignment: .leading, spacing: 6) {
-                HStack(spacing: 4) {
-                    Text("settings.orgid")
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(.white.opacity(0.6))
-                        .tracking(0.5)
-                        .textCase(.uppercase)
-                    Text("·")
-                        .foregroundStyle(.white.opacity(0.2))
+                            Button {
+                                showSessionKey.toggle()
+                            } label: {
+                                Image(systemName: showSessionKey ? "eye.slash" : "eye")
+                            }
+                            .buttonStyle(.borderless)
+                        }
+                    }
+
+                    LabeledContent("settings.orgid") {
+                        TextField("941eb286-b278-...", text: $organizationID)
+                            .textFieldStyle(.roundedBorder)
+                            .font(.system(.body, design: .monospaced))
+                    }
+                } header: {
+                    Text("settings.manual")
+                } footer: {
                     Text("settings.orgid.hint")
-                        .font(.system(size: 10, design: .monospaced))
-                        .foregroundStyle(.white.opacity(0.25))
+                }
+            }
+
+            Section {
+                HStack(spacing: 12) {
+                    Button {
+                        testConnection()
+                    } label: {
+                        if isTesting {
+                            ProgressView()
+                                .controlSize(.small)
+                        } else {
+                            Label("settings.test", systemImage: "bolt.fill")
+                        }
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled((!isOAuth && (sessionKey.isEmpty || organizationID.isEmpty)) || isTesting)
+
+                    Button {
+                        WidgetCenter.shared.reloadAllTimelines()
+                    } label: {
+                        Label("settings.refresh", systemImage: "arrow.clockwise")
+                    }
+                    .disabled(!isOAuth && sessionKey.isEmpty)
+
+                    Spacer()
+
+                    Button {
+                        showGuide = true
+                    } label: {
+                        Label("settings.guide", systemImage: "questionmark.circle")
+                    }
                 }
 
-                TextField("941eb286-b278-...", text: $organizationID)
-                    .textFieldStyle(.plain)
-                    .font(.system(size: 13, design: .monospaced))
-                    .foregroundStyle(.white.opacity(0.9))
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 10)
-                    .background(
-                        RoundedRectangle(cornerRadius: 8)
-                            .fill(Color.white.opacity(0.06))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .stroke(Color.white.opacity(0.08), lineWidth: 1)
-                            )
+                if let result = testResult {
+                    Label(
+                        result.message,
+                        systemImage: result.success ? "checkmark.circle.fill" : "xmark.circle.fill"
                     )
+                    .foregroundStyle(result.success ? .green : .red)
+                }
+            } footer: {
+                Text("settings.footer")
             }
         }
-        .padding(18)
-        .background(
-            RoundedRectangle(cornerRadius: 14)
-                .fill(cardBg)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 14)
-                        .stroke(Color.white.opacity(0.06), lineWidth: 1)
-                )
-        )
+        .formStyle(.grouped)
         .onChange(of: sessionKey) { saveConfig() }
         .onChange(of: organizationID) { saveConfig() }
     }
 
-    // MARK: - Actions
+    // MARK: - Display Tab
 
-    private var actionsRow: some View {
-        HStack(spacing: 10) {
-            // Test button
-            Button {
-                testConnection()
-            } label: {
-                HStack(spacing: 6) {
-                    if isTesting {
-                        ProgressView()
-                            .controlSize(.small)
-                            .tint(.white)
-                    } else {
-                        Image(systemName: "bolt.fill")
-                            .font(.system(size: 11))
-                    }
-                    Text("settings.test")
-                        .font(.system(size: 12, weight: .semibold))
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 10)
-                .foregroundStyle(sessionKey.isEmpty || organizationID.isEmpty ? .white.opacity(0.3) : .white)
-                .background(
-                    RoundedRectangle(cornerRadius: 10)
-                        .fill(
-                            LinearGradient(
-                                colors: sessionKey.isEmpty || organizationID.isEmpty
-                                    ? [Color.white.opacity(0.04), Color.white.opacity(0.04)]
-                                    : [accent, accentRed],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
-                )
+    private var displayTab: some View {
+        Form {
+            Section("settings.menubar.title") {
+                Toggle("settings.menubar.toggle", isOn: $showMenuBar)
             }
-            .buttonStyle(.plain)
-            .disabled(sessionKey.isEmpty || organizationID.isEmpty || isTesting)
 
-            // Refresh button
-            Button {
-                WidgetCenter.shared.reloadAllTimelines()
-            } label: {
-                HStack(spacing: 6) {
-                    Image(systemName: "arrow.clockwise")
-                        .font(.system(size: 11))
-                    Text("settings.refresh")
-                        .font(.system(size: 12, weight: .semibold))
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 10)
-                .foregroundStyle(sessionKey.isEmpty ? .white.opacity(0.3) : .white.opacity(0.7))
-                .background(
-                    RoundedRectangle(cornerRadius: 10)
-                        .fill(cardBg)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 10)
-                                .stroke(Color.white.opacity(0.08), lineWidth: 1)
-                        )
-                )
-            }
-            .buttonStyle(.plain)
-            .disabled(sessionKey.isEmpty)
-
-            // Guide button
-            Button {
-                showGuide = true
-            } label: {
-                HStack(spacing: 6) {
-                    Image(systemName: "questionmark.circle")
-                        .font(.system(size: 11))
-                    Text("settings.guide")
-                        .font(.system(size: 12, weight: .semibold))
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 10)
-                .foregroundStyle(.white.opacity(0.7))
-                .background(
-                    RoundedRectangle(cornerRadius: 10)
-                        .fill(cardBg)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 10)
-                                .stroke(Color.white.opacity(0.08), lineWidth: 1)
-                        )
-                )
-            }
-            .buttonStyle(.plain)
-        }
-    }
-
-    // MARK: - Result Banner
-
-    private func resultBanner(_ result: ConnectionTestResult) -> some View {
-        HStack(spacing: 10) {
-            Image(systemName: result.success ? "checkmark.circle.fill" : "xmark.circle.fill")
-                .font(.system(size: 16))
-                .foregroundStyle(result.success ? green : accentRed)
-
-            Text(result.message)
-                .font(.system(size: 12, weight: .medium))
-                .foregroundStyle(.white.opacity(0.8))
-
-            Spacer()
-        }
-        .padding(14)
-        .background(
-            RoundedRectangle(cornerRadius: 10)
-                .fill(result.success ? green.opacity(0.1) : accentRed.opacity(0.1))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 10)
-                        .stroke(result.success ? green.opacity(0.2) : accentRed.opacity(0.2), lineWidth: 1)
-                )
-        )
-        .transition(.opacity.combined(with: .move(edge: .top)))
-        .animation(.easeOut(duration: 0.3), value: testResult?.success)
-    }
-
-    // MARK: - Footer
-
-    @AppStorage("showMenuBar") private var showMenuBar = true
-
-    private var footerSection: some View {
-        VStack(spacing: 12) {
-            Divider()
-                .overlay(Color.white.opacity(0.06))
-
-            Toggle(isOn: $showMenuBar) {
-                Text("settings.menubar.toggle")
-                    .font(.system(size: 11))
-            }
-            .toggleStyle(.switch)
-            .controlSize(.small)
-            .foregroundStyle(.white.opacity(0.5))
-            .padding(.vertical, 4)
-
-            HStack {
-                Text("settings.footer")
-                    .font(.system(size: 10))
-                    .foregroundStyle(.white.opacity(0.2))
-                Spacer()
-                Text("v1.1.0")
-                    .font(.system(size: 10, design: .monospaced))
-                    .foregroundStyle(.white.opacity(0.15))
+            Section {
+                Toggle("metric.session", isOn: $pinnedFiveHour)
+                Toggle("metric.weekly", isOn: $pinnedSevenDay)
+                Toggle("metric.sonnet", isOn: $pinnedSonnet)
+            } header: {
+                Text("settings.metrics.pinned")
+            } footer: {
+                Text("settings.metrics.pinned.footer")
             }
         }
+        .formStyle(.grouped)
+        .onAppear { loadPinnedMetrics() }
+        .onChange(of: pinnedFiveHour) { savePinnedMetrics() }
+        .onChange(of: pinnedSevenDay) { savePinnedMetrics() }
+        .onChange(of: pinnedSonnet) { savePinnedMetrics() }
     }
 
     // MARK: - Guide Sheet
 
     private var guideSheet: some View {
         ZStack {
-            bg.ignoresSafeArea()
+            sheetBg.ignoresSafeArea()
 
             VStack(spacing: 0) {
-                // Sheet header
                 HStack {
                     Text("guide.title")
                         .font(.system(size: 16, weight: .bold, design: .rounded))
@@ -361,7 +257,6 @@ struct SettingsView: View {
                     guideStep(5, "building.2", LocalizedStringKey("guide.step5"), detail: String(localized: "guide.step5.detail"))
                     guideStep(6, "checkmark.circle", LocalizedStringKey("guide.step6"))
 
-                    // Widget add instruction
                     HStack(spacing: 12) {
                         Image(systemName: "square.grid.2x2")
                             .font(.system(size: 14))
@@ -387,7 +282,7 @@ struct SettingsView: View {
                             .overlay(
                                 RoundedRectangle(cornerRadius: 12)
                                     .stroke(accent.opacity(0.15), lineWidth: 1)
-                                )
+                            )
                     )
                 }
                 .padding(.horizontal, 24)
@@ -438,7 +333,7 @@ struct SettingsView: View {
         .padding(.vertical, 10)
         .background(
             RoundedRectangle(cornerRadius: 12)
-                .fill(cardBg)
+                .fill(sheetCard)
                 .overlay(
                     RoundedRectangle(cornerRadius: 12)
                         .stroke(Color.white.opacity(0.05), lineWidth: 1)
@@ -446,136 +341,11 @@ struct SettingsView: View {
         )
     }
 
-    // MARK: - Auto Import
-
-    private var autoImportSection: some View {
-        VStack(spacing: 10) {
-            Button {
-                detectAndImport()
-            } label: {
-                HStack(spacing: 8) {
-                    if isImporting {
-                        ProgressView()
-                            .controlSize(.small)
-                            .tint(.white)
-                    } else {
-                        Image(systemName: "wand.and.stars")
-                            .font(.system(size: 13))
-                    }
-                    VStack(alignment: .leading, spacing: 1) {
-                        Text("import.button")
-                            .font(.system(size: 12, weight: .semibold))
-                        Text("import.subtitle")
-                            .font(.system(size: 10))
-                            .foregroundStyle(.white.opacity(0.4))
-                    }
-                    Spacer()
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 10, weight: .semibold))
-                        .foregroundStyle(.white.opacity(0.3))
-                }
-                .padding(.horizontal, 14)
-                .padding(.vertical, 10)
-                .foregroundStyle(.white.opacity(0.85))
-                .background(
-                    RoundedRectangle(cornerRadius: 10)
-                        .fill(
-                            LinearGradient(
-                                colors: [accent.opacity(0.15), accentRed.opacity(0.1)],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 10)
-                                .stroke(accent.opacity(0.2), lineWidth: 1)
-                        )
-                )
-            }
-            .buttonStyle(.plain)
-            .disabled(isImporting)
-
-            if let message = importMessage {
-                HStack(spacing: 8) {
-                    Image(systemName: importSuccess ? "checkmark.circle.fill" : "info.circle.fill")
-                        .font(.system(size: 12))
-                        .foregroundStyle(importSuccess ? green : accent)
-                    Text(message)
-                        .font(.system(size: 11))
-                        .foregroundStyle(.white.opacity(0.7))
-                    Spacer()
-                }
-                .transition(.opacity)
-            }
-        }
-    }
-
-    private func detectAndImport() {
-        isImporting = true
-        importMessage = nil
-
-        DispatchQueue.global(qos: .userInitiated).async {
-            let browsers = BrowserCookieReader.detectBrowsers()
-
-            if browsers.isEmpty {
-                DispatchQueue.main.async {
-                    isImporting = false
-                    importMessage = String(localized: "import.nobroser")
-                    importSuccess = false
-                }
-                return
-            }
-
-            // If multiple browsers, show picker
-            if browsers.count > 1 {
-                DispatchQueue.main.async {
-                    detectedBrowsers = browsers
-                    showBrowserPicker = true
-                    isImporting = false
-                }
-                return
-            }
-
-            // Single browser, try directly
-            importFromBrowser(browsers[0])
-        }
-    }
-
-    private func importFromBrowser(_ browser: DetectedBrowser) {
-        isImporting = true
-        importMessage = nil
-
-        DispatchQueue.global(qos: .userInitiated).async {
-            let result = BrowserCookieReader.importCookies(from: browser)
-
-            DispatchQueue.main.async {
-                isImporting = false
-                switch result {
-                case .success(let cookies):
-                    sessionKey = cookies.sessionKey
-                    organizationID = cookies.organizationID
-                    saveConfig()
-                    var msg = String(format: String(localized: "import.success"), cookies.browser)
-                    if let expires = cookies.sessionKeyExpires {
-                        let formatted = expires.formatted(.relative(presentation: .named))
-                        msg += " · " + String(format: String(localized: "import.expires"), formatted)
-                    }
-                    importMessage = msg
-                    importSuccess = true
-                    showBrowserPicker = false
-                case .failure(let error):
-                    importMessage = "\(browser.name) : \(error.localizedDescription)"
-                    importSuccess = false
-                }
-            }
-        }
-    }
-
     // MARK: - Browser Picker Sheet
 
     private var browserPickerSheet: some View {
         ZStack {
-            bg.ignoresSafeArea()
+            sheetBg.ignoresSafeArea()
 
             VStack(spacing: 16) {
                 HStack {
@@ -623,7 +393,7 @@ struct SettingsView: View {
                         .padding(14)
                         .background(
                             RoundedRectangle(cornerRadius: 12)
-                                .fill(cardBg)
+                                .fill(sheetCard)
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 12)
                                         .stroke(Color.white.opacity(0.06), lineWidth: 1)
@@ -680,6 +450,14 @@ struct SettingsView: View {
             sessionKey = config.sessionKey
             organizationID = config.organizationID
         }
+        loadPinnedMetrics()
+        if KeychainOAuthReader.readClaudeCodeToken() != nil {
+            authMethodLabel = String(localized: "connect.method.oauth")
+            isOAuth = true
+        } else if !sessionKey.isEmpty && !organizationID.isEmpty {
+            authMethodLabel = String(localized: "connect.method.cookies")
+            isOAuth = false
+        }
     }
 
     private func saveConfig() {
@@ -688,18 +466,40 @@ struct SettingsView: View {
         onConfigSaved?()
     }
 
+    private func loadPinnedMetrics() {
+        if let saved = UserDefaults.standard.stringArray(forKey: "pinnedMetrics") {
+            let set = Set(saved)
+            pinnedFiveHour = set.contains(MetricID.fiveHour.rawValue)
+            pinnedSevenDay = set.contains(MetricID.sevenDay.rawValue)
+            pinnedSonnet = set.contains(MetricID.sonnet.rawValue)
+        }
+    }
+
+    private func savePinnedMetrics() {
+        var metrics: [String] = []
+        if pinnedFiveHour { metrics.append(MetricID.fiveHour.rawValue) }
+        if pinnedSevenDay { metrics.append(MetricID.sevenDay.rawValue) }
+        if pinnedSonnet { metrics.append(MetricID.sonnet.rawValue) }
+        if metrics.isEmpty { metrics.append(MetricID.fiveHour.rawValue); pinnedFiveHour = true }
+        UserDefaults.standard.set(metrics, forKey: "pinnedMetrics")
+        NotificationCenter.default.post(name: .displaySettingsDidChange, object: nil)
+    }
+
     // MARK: - Actions
 
     private func testConnection() {
         isTesting = true
         testResult = nil
-        saveConfig()
+        if !isOAuth { saveConfig() }
 
         Task {
-            let result = await ClaudeAPIClient.shared.testConnection(
-                sessionKey: sessionKey,
-                orgID: organizationID
-            )
+            let method: AuthMethod
+            if isOAuth, let oauth = KeychainOAuthReader.readClaudeCodeToken() {
+                method = .oauth(token: oauth.accessToken)
+            } else {
+                method = .cookies(sessionKey: sessionKey, orgId: organizationID)
+            }
+            let result = await ClaudeAPIClient.shared.testConnection(method: method)
 
             await MainActor.run {
                 testResult = result
@@ -707,6 +507,92 @@ struct SettingsView: View {
 
                 if result.success {
                     WidgetCenter.shared.reloadAllTimelines()
+                }
+            }
+        }
+    }
+
+    private func connectAutoDetect() {
+        isImporting = true
+        importMessage = nil
+
+        if let oauth = KeychainOAuthReader.readClaudeCodeToken() {
+            Task {
+                let result = await ClaudeAPIClient.shared.testConnection(method: .oauth(token: oauth.accessToken))
+                await MainActor.run {
+                    isImporting = false
+                    if result.success {
+                        isOAuth = true
+                        authMethodLabel = String(localized: "connect.method.oauth")
+                        importMessage = String(localized: "connect.oauth.success")
+                        importSuccess = true
+                        onConfigSaved?()
+                    } else {
+                        detectAndImportFromBrowser()
+                    }
+                }
+            }
+            return
+        }
+
+        detectAndImportFromBrowser()
+    }
+
+    private func detectAndImportFromBrowser() {
+        isImporting = true
+
+        DispatchQueue.global(qos: .userInitiated).async {
+            let browsers = BrowserCookieReader.detectBrowsers()
+
+            if browsers.isEmpty {
+                DispatchQueue.main.async {
+                    isImporting = false
+                    importMessage = String(localized: "import.nobroser")
+                    importSuccess = false
+                }
+                return
+            }
+
+            if browsers.count > 1 {
+                DispatchQueue.main.async {
+                    detectedBrowsers = browsers
+                    showBrowserPicker = true
+                    isImporting = false
+                }
+                return
+            }
+
+            importFromBrowser(browsers[0])
+        }
+    }
+
+    private func importFromBrowser(_ browser: DetectedBrowser) {
+        isImporting = true
+        importMessage = nil
+
+        DispatchQueue.global(qos: .userInitiated).async {
+            let result = BrowserCookieReader.importCookies(from: browser)
+
+            DispatchQueue.main.async {
+                isImporting = false
+                switch result {
+                case .success(let cookies):
+                    sessionKey = cookies.sessionKey
+                    organizationID = cookies.organizationID
+                    saveConfig()
+                    authMethodLabel = String(localized: "connect.method.cookies")
+                    isOAuth = false
+                    var msg = String(format: String(localized: "import.success"), cookies.browser)
+                    if let expires = cookies.sessionKeyExpires {
+                        let formatted = expires.formatted(.relative(presentation: .named))
+                        msg += " · " + String(format: String(localized: "import.expires"), formatted)
+                    }
+                    importMessage = msg
+                    importSuccess = true
+                    showBrowserPicker = false
+                case .failure(let error):
+                    importMessage = "\(browser.name) : \(error.localizedDescription)"
+                    importSuccess = false
                 }
             }
         }

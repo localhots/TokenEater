@@ -29,7 +29,7 @@ struct Provider: TimelineProvider {
     }
 
     private func fetchEntry() async -> UsageEntry {
-        guard apiClient.config != nil else {
+        guard apiClient.resolveAuthMethod() != nil else {
             return .unconfigured
         }
 
