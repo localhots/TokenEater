@@ -4,13 +4,13 @@
 
 ### Prérequis
 - Xcode 15+, XcodeGen (`brew install xcodegen`)
-- Le `DEVELOPMENT_TEAM` n'est pas dans `project.yml` — le passer en CLI : `DEVELOPMENT_TEAM=S7B8M9JYF4`
+- Le `DEVELOPMENT_TEAM` n'est pas dans `project.yml` — le passer en CLI : `DEVELOPMENT_TEAM=$DEVELOPMENT_TEAM`
 
 ### Build
 ```bash
 xcodegen generate
 plutil -insert NSExtension -json '{"NSExtensionPointIdentifier":"com.apple.widgetkit-extension"}' ClaudeUsageWidget/Info.plist 2>/dev/null || true
-xcodebuild -project ClaudeUsageWidget.xcodeproj -scheme ClaudeUsageApp -configuration Release -derivedDataPath build -allowProvisioningUpdates DEVELOPMENT_TEAM=S7B8M9JYF4 build
+xcodebuild -project ClaudeUsageWidget.xcodeproj -scheme ClaudeUsageApp -configuration Release -derivedDataPath build -allowProvisioningUpdates DEVELOPMENT_TEAM=$DEVELOPMENT_TEAM build
 ```
 
 ### Install local (IMPORTANT : nuclear cleanup obligatoire)
