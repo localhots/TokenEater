@@ -23,6 +23,8 @@ enum SharedContainer {
         var oauthToken: String?
         var cachedUsage: CachedUsage?
         var lastSyncDate: Date?
+        var theme: ThemeColors?
+        var thresholds: UsageThresholds?
     }
 
     private static func load() -> SharedData {
@@ -71,12 +73,41 @@ enum SharedContainer {
         }
     }
 
+    // MARK: - Theme
+
+    static var theme: ThemeColors {
+        get { load().theme ?? .default }
+        set {
+            var data = load()
+            data.theme = newValue
+            save(data)
+        }
+    }
+
+    // MARK: - Thresholds
+
+    static var thresholds: UsageThresholds {
+        get { load().thresholds ?? .default }
+        set {
+            var data = load()
+            data.thresholds = newValue
+            save(data)
+        }
+    }
+
     // MARK: - Atomic Updates
 
     static func updateAfterSync(usage: CachedUsage, syncDate: Date) {
         var data = load()
         data.cachedUsage = usage
         data.lastSyncDate = syncDate
+        save(data)
+    }
+
+    static func updateTheme(_ theme: ThemeColors, thresholds: UsageThresholds) {
+        var data = load()
+        data.theme = theme
+        data.thresholds = thresholds
         save(data)
     }
 

@@ -1,5 +1,6 @@
 import SwiftUI
 import WidgetKit
+import UserNotifications
 
 extension Notification.Name {
     static let displaySettingsDidChange = Notification.Name("displaySettingsDidChange")
@@ -24,11 +25,17 @@ struct SettingsView: View {
     @State private var pinnedSonnet = false
     @State private var pinnedPacing = false
 
+    @State private var notifStatus: UNAuthorizationStatus = .notDetermined
+    @State private var notifTestCooldown = false
+
     @AppStorage("proxyEnabled") private var proxyEnabled = false
     @AppStorage("proxyHost") private var proxyHost = "127.0.0.1"
     @AppStorage("proxyPort") private var proxyPort = 1080
 
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = true
+
+    @ObservedObject private var themeManager = ThemeManager.shared
+    @State private var showResetAlert = false
 
     // Colors for guide sheet
     private let sheetBg = Color(hex: "#141416")
@@ -51,7 +58,7 @@ struct SettingsView: View {
                         .foregroundStyle(.secondary)
                 }
                 Spacer()
-                Text("v3.1.0")
+                Text("v3.2.0")
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
             }
@@ -68,13 +75,17 @@ struct SettingsView: View {
                     .tabItem {
                         Label("settings.tab.display", systemImage: "menubar.rectangle")
                     }
+                themingTab
+                    .tabItem {
+                        Label("settings.tab.theming", systemImage: "paintpalette.fill")
+                    }
                 proxyTab
                     .tabItem {
                         Label("settings.tab.proxy", systemImage: "network")
                     }
             }
         }
-        .frame(width: 500, height: 400)
+        .frame(width: 500, height: 480)
         .onAppear { loadConfig() }
         .sheet(isPresented: $showGuide) { guideSheet }
     }
@@ -196,15 +207,223 @@ struct SettingsView: View {
                 }
                 .pickerStyle(.radioGroup)
             }
+
+            Section("settings.theme.thresholds") {
+                HStack {
+                    Text("settings.theme.warning")
+                    Slider(value: Binding(
+                        get: { Double(themeManager.warningThreshold) },
+                        set: { newValue in
+                            let val = Int(newValue)
+                            themeManager.warningThreshold = val
+                            if val >= themeManager.criticalThreshold {
+                                themeManager.criticalThreshold = min(val + 5, 95)
+                            }
+                        }
+                    ), in: 10...90, step: 5)
+                    Text("\(themeManager.warningThreshold)%")
+                        .monospacedDigit()
+                        .frame(width: 40, alignment: .trailing)
+                }
+                HStack {
+                    Text("settings.theme.critical")
+                    Slider(value: Binding(
+                        get: { Double(themeManager.criticalThreshold) },
+                        set: { newValue in
+                            let val = Int(newValue)
+                            themeManager.criticalThreshold = val
+                            if val <= themeManager.warningThreshold {
+                                themeManager.warningThreshold = max(val - 5, 10)
+                            }
+                        }
+                    ), in: 15...95, step: 5)
+                    Text("\(themeManager.criticalThreshold)%")
+                        .monospacedDigit()
+                        .frame(width: 40, alignment: .trailing)
+                }
+            }
+
+            Section("settings.notifications.title") {
+                HStack {
+                    Text("settings.notifications.status")
+                    Spacer()
+                    switch notifStatus {
+                    case .authorized:
+                        Label("settings.notifications.on", systemImage: "checkmark.circle.fill")
+                            .font(.caption)
+                            .foregroundStyle(.green)
+                    case .denied:
+                        Label("settings.notifications.off", systemImage: "xmark.circle.fill")
+                            .font(.caption)
+                            .foregroundStyle(.red)
+                    default:
+                        Label("settings.notifications.unknown", systemImage: "questionmark.circle")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                HStack(spacing: 12) {
+                    if notifStatus == .denied {
+                        Button("settings.notifications.open") {
+                            NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.Notifications-Settings")!)
+                        }
+                    } else if notifStatus != .authorized {
+                        Button("settings.notifications.enable") {
+                            UsageNotificationManager.requestPermission()
+                            Task {
+                                try? await Task.sleep(for: .seconds(0.5))
+                                notifStatus = await UsageNotificationManager.checkAuthorizationStatus()
+                            }
+                        }
+                        .buttonStyle(.borderedProminent)
+                    }
+
+                    Button("settings.notifications.test") {
+                        if notifStatus != .authorized {
+                            UsageNotificationManager.requestPermission()
+                        }
+                        UsageNotificationManager.sendTest()
+                        notifTestCooldown = true
+                        Task {
+                            try? await Task.sleep(for: .seconds(3))
+                            notifTestCooldown = false
+                            notifStatus = await UsageNotificationManager.checkAuthorizationStatus()
+                        }
+                    }
+                    .disabled(notifTestCooldown)
+                }
+            }
         }
         .formStyle(.grouped)
-        .onAppear { loadPinnedMetrics() }
+        .onAppear {
+            loadPinnedMetrics()
+            Task { notifStatus = await UsageNotificationManager.checkAuthorizationStatus() }
+        }
         .onChange(of: pinnedFiveHour) { _ in savePinnedMetrics() }
         .onChange(of: pinnedSevenDay) { _ in savePinnedMetrics() }
         .onChange(of: pinnedSonnet) { _ in savePinnedMetrics() }
         .onChange(of: pinnedPacing) { _ in savePinnedMetrics() }
         .onChange(of: pacingDisplayMode) { _ in
             NotificationCenter.default.post(name: .displaySettingsDidChange, object: nil)
+        }
+    }
+
+    // MARK: - Theming Tab
+
+    private var themingTab: some View {
+        Form {
+            // Menu bar monochrome
+            Section("settings.theme.menubar") {
+                Toggle("settings.theme.monochrome", isOn: $themeManager.menuBarMonochrome)
+            }
+
+            // Preset picker
+            Section("settings.theme.preset") {
+                Picker("settings.theme.preset", selection: $themeManager.selectedPreset) {
+                    ForEach(ThemeColors.allPresets, id: \.key) { preset in
+                        Text(preset.label).tag(preset.key)
+                    }
+                    Text("settings.theme.custom").tag("custom")
+                }
+                .pickerStyle(.radioGroup)
+                .labelsHidden()
+            }
+
+            // Custom colors (visible only when preset == "custom")
+            if themeManager.selectedPreset == "custom" {
+                Section("settings.theme.colors") {
+                    themeColorPicker("settings.theme.gauge.normal", hex: $themeManager.customTheme.gaugeNormal)
+                    themeColorPicker("settings.theme.gauge.warning", hex: $themeManager.customTheme.gaugeWarning)
+                    themeColorPicker("settings.theme.gauge.critical", hex: $themeManager.customTheme.gaugeCritical)
+                    themeColorPicker("settings.theme.pacing.chill", hex: $themeManager.customTheme.pacingChill)
+                    themeColorPicker("settings.theme.pacing.ontrack", hex: $themeManager.customTheme.pacingOnTrack)
+                    themeColorPicker("settings.theme.pacing.hot", hex: $themeManager.customTheme.pacingHot)
+                    themeColorPicker("settings.theme.widget.bg", hex: $themeManager.customTheme.widgetBackground)
+                    themeColorPicker("settings.theme.widget.text", hex: $themeManager.customTheme.widgetText)
+                }
+            }
+
+            // Preview gauges
+            Section("settings.theme.preview") {
+                HStack(spacing: 24) {
+                    Spacer()
+                    themePreviewGauge(
+                        pct: Double(max(themeManager.warningThreshold - 15, 5)),
+                        label: "settings.theme.preview.normal"
+                    )
+                    themePreviewGauge(
+                        pct: Double(themeManager.warningThreshold + themeManager.criticalThreshold) / 2.0,
+                        label: "settings.theme.preview.warning"
+                    )
+                    themePreviewGauge(
+                        pct: Double(min(themeManager.criticalThreshold + 5, 100)),
+                        label: "settings.theme.preview.critical"
+                    )
+                    Spacer()
+                }
+            }
+
+            // Reset
+            Section {
+                Button(role: .destructive) {
+                    showResetAlert = true
+                } label: {
+                    Text("settings.theme.reset")
+                }
+                .alert("settings.theme.reset.confirm", isPresented: $showResetAlert) {
+                    Button("settings.theme.reset.cancel", role: .cancel) { }
+                    Button("settings.theme.reset.action", role: .destructive) {
+                        themeManager.resetToDefaults()
+                    }
+                }
+            }
+        }
+        .formStyle(.grouped)
+        .onChange(of: themeManager.selectedPreset) { [oldPreset = themeManager.selectedPreset] newValue in
+            if newValue == "custom", let source = ThemeColors.preset(for: oldPreset) {
+                themeManager.customTheme = source
+            }
+        }
+    }
+
+    private func themeColorPicker(_ titleKey: LocalizedStringKey, hex: Binding<String>) -> some View {
+        let colorBinding = Binding<Color>(
+            get: { Color(hex: hex.wrappedValue) },
+            set: { newColor in
+                let nsColor = NSColor(newColor).usingColorSpace(.sRGB) ?? NSColor(newColor)
+                let r = Int(nsColor.redComponent * 255)
+                let g = Int(nsColor.greenComponent * 255)
+                let b = Int(nsColor.blueComponent * 255)
+                hex.wrappedValue = String(format: "#%02X%02X%02X", r, g, b)
+            }
+        )
+        return ColorPicker(titleKey, selection: colorBinding, supportsOpacity: false)
+    }
+
+    private func themePreviewGauge(pct: Double, label: LocalizedStringKey) -> some View {
+        let theme = themeManager.current
+        let thresholds = themeManager.thresholds
+        let color = theme.gaugeColor(for: pct, thresholds: thresholds)
+        let fraction = pct / 100.0
+
+        return VStack(spacing: 4) {
+            ZStack {
+                Circle()
+                    .stroke(color.opacity(0.2), lineWidth: 4)
+                    .frame(width: 40, height: 40)
+                Circle()
+                    .trim(from: 0, to: fraction)
+                    .stroke(color, style: StrokeStyle(lineWidth: 4, lineCap: .round))
+                    .frame(width: 40, height: 40)
+                    .rotationEffect(.degrees(-90))
+                Text("\(Int(pct))%")
+                    .font(.system(size: 9, weight: .bold, design: .rounded))
+                    .monospacedDigit()
+            }
+            Text(label)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
         }
     }
 

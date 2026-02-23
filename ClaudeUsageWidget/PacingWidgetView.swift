@@ -3,6 +3,7 @@ import WidgetKit
 
 struct PacingWidgetView: View {
     let entry: UsageEntry
+    private var theme: ThemeColors { SharedContainer.theme }
 
     var body: some View {
         Group {
@@ -25,7 +26,7 @@ struct PacingWidgetView: View {
                 Text("pacing.label")
                     .font(.system(size: 9, weight: .heavy))
                     .tracking(0.3)
-                    .foregroundStyle(.white.opacity(0.5))
+                    .foregroundStyle(Color(hex: theme.widgetText).opacity(0.5))
                 Spacer()
             }
 
@@ -69,7 +70,7 @@ struct PacingWidgetView: View {
             if let reset = pacing.resetDate, reset.timeIntervalSinceNow > 0 {
                 Text(String(format: String(localized: "pacing.reset"), formatResetDate(reset)))
                     .font(.system(size: 8, weight: .medium))
-                    .foregroundStyle(.white.opacity(0.3))
+                    .foregroundStyle(Color(hex: theme.widgetText).opacity(0.3))
             }
         }
         .padding(.horizontal, 2)
@@ -79,31 +80,20 @@ struct PacingWidgetView: View {
         VStack(spacing: 6) {
             Image(systemName: "gauge.with.needle")
                 .font(.system(size: 24))
-                .foregroundStyle(.white.opacity(0.3))
+                .foregroundStyle(Color(hex: theme.widgetText).opacity(0.3))
             Text("widget.loading")
                 .font(.system(size: 11))
-                .foregroundStyle(.white.opacity(0.4))
+                .foregroundStyle(Color(hex: theme.widgetText).opacity(0.4))
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private func colorForZone(_ zone: PacingZone) -> Color {
-        switch zone {
-        case .chill: return Color(hex: "#32D74B")
-        case .onTrack: return Color(hex: "#0A84FF")
-        case .hot: return Color(hex: "#FF453A")
-        }
+        theme.pacingColor(for: zone)
     }
 
     private func gradientForZone(_ zone: PacingZone) -> LinearGradient {
-        switch zone {
-        case .chill:
-            return LinearGradient(colors: [Color(hex: "#22C55E"), Color(hex: "#4ADE80")], startPoint: .topLeading, endPoint: .bottomTrailing)
-        case .onTrack:
-            return LinearGradient(colors: [Color(hex: "#0A84FF"), Color(hex: "#409CFF")], startPoint: .topLeading, endPoint: .bottomTrailing)
-        case .hot:
-            return LinearGradient(colors: [Color(hex: "#EF4444"), Color(hex: "#DC2626")], startPoint: .topLeading, endPoint: .bottomTrailing)
-        }
+        theme.pacingGradient(for: zone)
     }
 
     private func formatResetDate(_ date: Date) -> String {

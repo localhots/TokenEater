@@ -4,13 +4,15 @@ import WidgetKit
 // MARK: - Widget Background (macOS 13 compat)
 
 struct WidgetBackgroundModifier: ViewModifier {
+    var backgroundColor: Color = Color(hex: SharedContainer.theme.widgetBackground).opacity(0.85)
+
     func body(content: Content) -> some View {
         if #available(macOS 14.0, *) {
             content.containerBackground(for: .widget) {
-                Color.black.opacity(0.85)
+                backgroundColor
             }
         } else {
-            content.padding().background(Color.black.opacity(0.85))
+            content.padding().background(backgroundColor)
         }
     }
 }
@@ -21,6 +23,8 @@ struct UsageWidgetView: View {
     let entry: UsageEntry
 
     @Environment(\.widgetFamily) var family
+    private var theme: ThemeColors { SharedContainer.theme }
+    private var thresholds: UsageThresholds { SharedContainer.thresholds }
 
     var body: some View {
         Group {
@@ -53,12 +57,12 @@ struct UsageWidgetView: View {
                 Text("TokenEater")
                     .font(.system(size: 10, weight: .heavy))
                     .tracking(0.3)
-                    .foregroundStyle(.white.opacity(0.5))
+                    .foregroundStyle(Color(hex: theme.widgetText).opacity(0.5))
                 Spacer()
                 if entry.isStale {
                     Image(systemName: "wifi.slash")
                         .font(.system(size: 8))
-                        .foregroundStyle(.white.opacity(0.4))
+                        .foregroundStyle(Color(hex: theme.widgetText).opacity(0.4))
                 }
             }
             .padding(.bottom, 16)
@@ -90,12 +94,12 @@ struct UsageWidgetView: View {
             HStack {
                 Text(String(format: String(localized: "widget.updated"), entry.date.relativeFormatted))
                     .font(.system(size: 8, design: .rounded))
-                    .foregroundStyle(.white.opacity(0.3))
+                    .foregroundStyle(Color(hex: theme.widgetText).opacity(0.3))
                 Spacer()
                 if entry.isStale {
                     Image(systemName: "wifi.slash")
                         .font(.system(size: 8))
-                        .foregroundStyle(.white.opacity(0.4))
+                        .foregroundStyle(Color(hex: theme.widgetText).opacity(0.4))
                 }
             }
         }
@@ -114,7 +118,7 @@ struct UsageWidgetView: View {
                     .frame(width: 16, height: 16)
                 Text("TokenEater")
                     .font(.system(size: 16, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white.opacity(0.95))
+                    .foregroundStyle(Color(hex: theme.widgetText).opacity(0.95))
                 Spacer()
                 if entry.isStale {
                     HStack(spacing: 3) {
@@ -123,7 +127,7 @@ struct UsageWidgetView: View {
                         Text("widget.offline")
                             .font(.system(size: 9, design: .rounded))
                     }
-                    .foregroundStyle(.white.opacity(0.4))
+                    .foregroundStyle(Color(hex: theme.widgetText).opacity(0.4))
                 }
             }
             .padding(.bottom, 8)
@@ -174,13 +178,7 @@ struct UsageWidgetView: View {
                         return d > 0 ? String(format: String(localized: "duration.days.hours"), d, h) : "\(h)h"
                     }(),
                     utilization: pacing.actualUsage,
-                    colorOverride: {
-                        switch pacing.zone {
-                        case .chill: return Color(hex: "#22C55E")
-                        case .onTrack: return Color(hex: "#0A84FF")
-                        case .hot: return Color(hex: "#EF4444")
-                        }
-                    }(),
+                    colorOverride: theme.pacingColor(for: pacing.zone),
                     displayText: "\(pacing.delta >= 0 ? "+" : "")\(Int(pacing.delta))%"
                 )
             }
@@ -196,7 +194,7 @@ struct UsageWidgetView: View {
             HStack {
                 Text(String(format: String(localized: "widget.updated"), entry.date.relativeFormatted))
                     .font(.system(size: 9, design: .rounded))
-                    .foregroundStyle(.white.opacity(0.3))
+                    .foregroundStyle(Color(hex: theme.widgetText).opacity(0.3))
                 Spacer()
                 if entry.isStale {
                     HStack(spacing: 3) {
@@ -205,7 +203,7 @@ struct UsageWidgetView: View {
                         Text("widget.offline")
                             .font(.system(size: 9, design: .rounded))
                     }
-                    .foregroundStyle(.white.opacity(0.4))
+                    .foregroundStyle(Color(hex: theme.widgetText).opacity(0.4))
                 } else {
                     HStack(spacing: 3) {
                         Circle()
@@ -213,7 +211,7 @@ struct UsageWidgetView: View {
                             .frame(width: 4, height: 4)
                         Text(String(localized: "widget.refresh.interval"))
                             .font(.system(size: 9, design: .rounded))
-                            .foregroundStyle(.white.opacity(0.25))
+                            .foregroundStyle(Color(hex: theme.widgetText).opacity(0.25))
                     }
                 }
             }
@@ -236,7 +234,7 @@ struct UsageWidgetView: View {
                 )
             Text(message)
                 .font(.system(size: 12, design: .rounded))
-                .foregroundStyle(.white.opacity(0.6))
+                .foregroundStyle(Color(hex: theme.widgetText).opacity(0.6))
                 .multilineTextAlignment(.center)
         }
         .padding()
@@ -250,7 +248,7 @@ struct UsageWidgetView: View {
                 .tint(.orange)
             Text("widget.loading")
                 .font(.system(size: 12, design: .rounded))
-                .foregroundStyle(.white.opacity(0.4))
+                .foregroundStyle(Color(hex: theme.widgetText).opacity(0.4))
         }
     }
 
@@ -285,24 +283,11 @@ struct CircularUsageView: View {
     let label: String
     let resetInfo: String
     let utilization: Double
+    var theme: ThemeColors = SharedContainer.theme
+    var thresholds: UsageThresholds = SharedContainer.thresholds
 
     private var ringGradient: LinearGradient {
-        if utilization >= 85 {
-            return LinearGradient(
-                colors: [Color(hex: "#EF4444"), Color(hex: "#DC2626")],
-                startPoint: .topLeading, endPoint: .bottomTrailing
-            )
-        } else if utilization >= 60 {
-            return LinearGradient(
-                colors: [Color(hex: "#F97316"), Color(hex: "#FB923C")],
-                startPoint: .topLeading, endPoint: .bottomTrailing
-            )
-        } else {
-            return LinearGradient(
-                colors: [Color(hex: "#22C55E"), Color(hex: "#4ADE80")],
-                startPoint: .topLeading, endPoint: .bottomTrailing
-            )
-        }
+        theme.gaugeGradient(for: utilization, thresholds: thresholds)
     }
 
     var body: some View {
@@ -319,7 +304,7 @@ struct CircularUsageView: View {
                 Text("\(Int(utilization))%")
                     .font(.system(size: 12, weight: .black, design: .rounded))
                     .monospacedDigit()
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Color(hex: theme.widgetText))
             }
             .frame(width: 50, height: 50)
 
@@ -327,10 +312,10 @@ struct CircularUsageView: View {
                 Text(label)
                     .font(.system(size: 10, weight: .bold))
                     .tracking(0.2)
-                    .foregroundStyle(.white.opacity(0.85))
+                    .foregroundStyle(Color(hex: theme.widgetText).opacity(0.85))
                 Text(resetInfo)
                     .font(.system(size: 8, weight: .medium))
-                    .foregroundStyle(.white.opacity(0.4))
+                    .foregroundStyle(Color(hex: theme.widgetText).opacity(0.4))
             }
         }
         .frame(maxWidth: .infinity)
@@ -341,24 +326,14 @@ struct CircularUsageView: View {
 
 struct CircularPacingView: View {
     let pacing: PacingResult
+    var theme: ThemeColors = SharedContainer.theme
 
     private var ringColor: Color {
-        switch pacing.zone {
-        case .chill: return Color(hex: "#22C55E")
-        case .onTrack: return Color(hex: "#0A84FF")
-        case .hot: return Color(hex: "#EF4444")
-        }
+        theme.pacingColor(for: pacing.zone)
     }
 
     private var ringGradient: LinearGradient {
-        switch pacing.zone {
-        case .chill:
-            return LinearGradient(colors: [Color(hex: "#22C55E"), Color(hex: "#4ADE80")], startPoint: .topLeading, endPoint: .bottomTrailing)
-        case .onTrack:
-            return LinearGradient(colors: [Color(hex: "#0A84FF"), Color(hex: "#409CFF")], startPoint: .topLeading, endPoint: .bottomTrailing)
-        case .hot:
-            return LinearGradient(colors: [Color(hex: "#EF4444"), Color(hex: "#DC2626")], startPoint: .topLeading, endPoint: .bottomTrailing)
-        }
+        theme.pacingGradient(for: pacing.zone)
     }
 
     var body: some View {
@@ -391,7 +366,7 @@ struct CircularPacingView: View {
                 Text("pacing.label")
                     .font(.system(size: 10, weight: .bold))
                     .tracking(0.2)
-                    .foregroundStyle(.white.opacity(0.85))
+                    .foregroundStyle(Color(hex: theme.widgetText).opacity(0.85))
                 Text(pacing.message)
                     .font(.system(size: 7, weight: .medium))
                     .foregroundStyle(ringColor.opacity(0.7))
@@ -412,38 +387,19 @@ struct LargeUsageBarView: View {
     let utilization: Double
     var colorOverride: Color? = nil
     var displayText: String? = nil
+    var theme: ThemeColors = SharedContainer.theme
+    var thresholds: UsageThresholds = SharedContainer.thresholds
 
     private var barGradient: LinearGradient {
         if let color = colorOverride {
             return LinearGradient(colors: [color, color.opacity(0.8)], startPoint: .leading, endPoint: .trailing)
         }
-        if utilization >= 85 {
-            return LinearGradient(
-                colors: [Color(hex: "#EF4444"), Color(hex: "#DC2626")],
-                startPoint: .leading, endPoint: .trailing
-            )
-        } else if utilization >= 60 {
-            return LinearGradient(
-                colors: [Color(hex: "#F97316"), Color(hex: "#FB923C")],
-                startPoint: .leading, endPoint: .trailing
-            )
-        } else {
-            return LinearGradient(
-                colors: [Color(hex: "#22C55E"), Color(hex: "#4ADE80")],
-                startPoint: .leading, endPoint: .trailing
-            )
-        }
+        return theme.gaugeGradient(for: utilization, thresholds: thresholds, startPoint: .leading, endPoint: .trailing)
     }
 
     private var accentColor: Color {
         if let color = colorOverride { return color }
-        if utilization >= 85 {
-            return Color(hex: "#EF4444")
-        } else if utilization >= 60 {
-            return Color(hex: "#F97316")
-        } else {
-            return Color(hex: "#22C55E")
-        }
+        return theme.gaugeColor(for: utilization, thresholds: thresholds)
     }
 
     var body: some View {
@@ -458,10 +414,10 @@ struct LargeUsageBarView: View {
                     Text(label)
                         .font(.system(size: 13, weight: .bold))
                         .tracking(0.2)
-                        .foregroundStyle(.white.opacity(0.9))
+                        .foregroundStyle(Color(hex: theme.widgetText).opacity(0.9))
                     Text(subtitle)
                         .font(.system(size: 9, weight: .medium))
-                        .foregroundStyle(.white.opacity(0.35))
+                        .foregroundStyle(Color(hex: theme.widgetText).opacity(0.35))
                 }
 
                 Spacer()
@@ -473,7 +429,7 @@ struct LargeUsageBarView: View {
                         .foregroundStyle(accentColor)
                     Text(String(format: String(localized: "widget.reset"), resetInfo))
                         .font(.system(size: 8, weight: .medium))
-                        .foregroundStyle(.white.opacity(0.3))
+                        .foregroundStyle(Color(hex: theme.widgetText).opacity(0.3))
                 }
             }
 
