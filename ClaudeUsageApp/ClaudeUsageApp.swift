@@ -4,6 +4,7 @@ import SwiftUI
 struct ClaudeUsageApp: App {
     @StateObject private var menuBarVM = MenuBarViewModel()
     @AppStorage("showMenuBar") private var showMenuBar = true
+    @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
 
     init() {
         syncProxyConfig()
@@ -11,10 +12,20 @@ struct ClaudeUsageApp: App {
 
     var body: some Scene {
         WindowGroup(id: "settings") {
-            SettingsView(onConfigSaved: { [weak menuBarVM] in
-                menuBarVM?.reloadConfig()
+            if hasCompletedOnboarding {
+                SettingsView(onConfigSaved: { [weak menuBarVM] in
+                    menuBarVM?.reloadConfig()
+                    syncProxyConfig()
+                })
+            } else {
+                OnboardingView()
+            }
+        }
+        .onChange(of: hasCompletedOnboarding) { completed in
+            if completed {
+                menuBarVM.reloadConfig()
                 syncProxyConfig()
-            })
+            }
         }
         .windowResizability(.contentSize)
 
