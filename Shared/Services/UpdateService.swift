@@ -63,19 +63,24 @@ final class UpdateService: UpdateServiceProtocol, @unchecked Sendable {
 
         let source = "tell application \"Terminal\"\nactivate\ndo script \"\(brewCmd)\"\nend tell"
 
-        guard let script = NSAppleScript(source: source) else {
+        guard NSAppleScript(source: source) != nil else {
             NSPasteboard.general.clearContents()
             NSPasteboard.general.setString("brew update && brew upgrade --cask --greedy tokeneater", forType: .string)
             throw UpdateError.scriptLaunchFailed
         }
 
-        var errorInfo: NSDictionary?
-        script.executeAndReturnError(&errorInfo)
-
-        if errorInfo != nil {
-            NSPasteboard.general.clearContents()
-            NSPasteboard.general.setString("brew update && brew upgrade --cask --greedy tokeneater", forType: .string)
-            throw UpdateError.scriptLaunchFailed
+        // Execute off main thread — executeAndReturnError is synchronous
+        // and blocks while waiting for TCC / Terminal response
+        DispatchQueue.global(qos: .userInitiated).async {
+            guard let script = NSAppleScript(source: source) else { return }
+            var errorInfo: NSDictionary?
+            script.executeAndReturnError(&errorInfo)
+            if errorInfo != nil {
+                DispatchQueue.main.async {
+                    NSPasteboard.general.clearContents()
+                    NSPasteboard.general.setString("brew update && brew upgrade --cask --greedy tokeneater", forType: .string)
+                }
+            }
         }
     }
 
