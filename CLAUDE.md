@@ -28,6 +28,35 @@ brew install xcodes  # si pas déjà installé
 xcodes install 16.4 --directory /Applications
 ```
 
+### Tests unitaires
+
+**80 tests** couvrent la logique métier (stores, repository, pacing, token recovery). Les tests ne couvrent PAS le rendu SwiftUI ni le widget en conditions réelles — pour ça, utiliser le build + nuke + install.
+
+```bash
+xcodegen generate
+xcodebuild -project TokenEater.xcodeproj -scheme TokenEaterTests \
+  -configuration Debug -derivedDataPath build \
+  -destination 'platform=macOS' \
+  CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO \
+  test
+```
+
+**Quand lancer les tests :**
+- Avant chaque commit qui touche `Shared/` (stores, services, repository, helpers, models)
+- Le CI (`ci.yml`) les lance automatiquement sur chaque PR et push sur main
+
+**Quand tester manuellement (build + nuke + install) :**
+- Changements SwiftUI (vues, layout, bindings)
+- Changements widget (timeline, rendu)
+- Toujours en **Release** avec Xcode 16.4 pour les changements SwiftUI
+
+**Écriture de tests :**
+- Framework : Swift Testing (`import Testing`, `@Test`, `#expect`)
+- Les mocks sont dans `TokenEaterTests/Mocks/` — chaque service a son mock protocol-based
+- Les fixtures sont dans `TokenEaterTests/Fixtures/`
+- Les stores sont `@MainActor` → les suites de test doivent aussi être `@MainActor`
+- `UserDefaults.standard` est partagé entre tests → utiliser `.serialized` sur les suites qui écrivent dans UserDefaults + nettoyer dans un helper
+
 ### Build seul (sans install)
 ```bash
 xcodegen generate
