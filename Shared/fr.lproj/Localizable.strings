@@ -200,8 +200,8 @@
 "onboarding.notif.denied.hint" = "Pas de souci — vous pourrez les activer plus tard dans les Réglages Système.";
 "onboarding.notif.open.settings" = "Ouvrir les réglages";
 "onboarding.notif.skip.hint" = "Vous manquerez les alertes de seuil";
-"onboarding.notif.mockup.title" = "⚠️ Session 5h — 72%%";
-"onboarding.notif.mockup.body" = "Tu dépasses 60%% — lève le pied";
+"onboarding.notif.mockup.title" = "⚠️ Session 5h — 72%";
+"onboarding.notif.mockup.body" = "Tu dépasses 60% — lève le pied";
 
 /* Onboarding - Connection */
 "onboarding.connection.title" = "Dernière étape";

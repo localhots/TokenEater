@@ -25,9 +25,10 @@ enum MetricID: String, CaseIterable {
     }
 }
 
-enum PacingDisplayMode: String {
+enum PacingDisplayMode: String, CaseIterable {
     case dot
     case dotDelta
+    case delta
 }
 
 enum AppErrorState: Equatable {

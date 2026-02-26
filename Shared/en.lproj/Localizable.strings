@@ -200,8 +200,8 @@
 "onboarding.notif.denied.hint" = "No worries — you can enable them later in System Settings.";
 "onboarding.notif.open.settings" = "Open Settings";
 "onboarding.notif.skip.hint" = "You'll miss threshold alerts";
-"onboarding.notif.mockup.title" = "⚠️ Session 5h — 72%%";
-"onboarding.notif.mockup.body" = "You're past 60%% — consider slowing down";
+"onboarding.notif.mockup.title" = "⚠️ Session 5h — 72%";
+"onboarding.notif.mockup.body" = "You're past 60% — consider slowing down";
 
 /* Onboarding - Connection */
 "onboarding.connection.title" = "One last thing";

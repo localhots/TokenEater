@@ -76,14 +76,19 @@ enum MenuBarRenderer {
                     .font: NSFont.systemFont(ofSize: 11, weight: .bold),
                     .foregroundColor: dotColor,
                 ]
-                str.append(NSAttributedString(string: "\u{25CF}", attributes: dotAttrs))
-                if data.pacingDisplayMode == .dotDelta {
-                    let sign = data.pacingDelta >= 0 ? "+" : ""
-                    let deltaAttrs: [NSAttributedString.Key: Any] = [
-                        .font: NSFont.monospacedDigitSystemFont(ofSize: 10, weight: .bold),
-                        .foregroundColor: dotColor,
-                    ]
+                let deltaAttrs: [NSAttributedString.Key: Any] = [
+                    .font: NSFont.monospacedDigitSystemFont(ofSize: 10, weight: .bold),
+                    .foregroundColor: dotColor,
+                ]
+                let sign = data.pacingDelta >= 0 ? "+" : ""
+                switch data.pacingDisplayMode {
+                case .dot:
+                    str.append(NSAttributedString(string: "\u{25CF}", attributes: dotAttrs))
+                case .dotDelta:
+                    str.append(NSAttributedString(string: "\u{25CF}", attributes: dotAttrs))
                     str.append(NSAttributedString(string: " \(sign)\(data.pacingDelta)%", attributes: deltaAttrs))
+                case .delta:
+                    str.append(NSAttributedString(string: "\(sign)\(data.pacingDelta)%", attributes: deltaAttrs))
                 }
             } else {
                 let value: Int

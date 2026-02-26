@@ -35,7 +35,7 @@ struct OnboardingView: View {
             }
             .padding(.bottom, 20)
         }
-        .frame(width: 520, height: 540)
+        .frame(width: 520, height: 580)
         .onAppear {
             NSApp.activate(ignoringOtherApps: true)
             DispatchQueue.main.async {
