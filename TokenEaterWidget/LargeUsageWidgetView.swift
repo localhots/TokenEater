@@ -100,14 +100,13 @@ struct LargeUsageWidgetView: View {
 // MARK: - Helpers
 
 private func formatTokenCount(_ n: Int) -> String {
-    if n >= 1_000_000 {
-        let m = Double(n) / 1_000_000
-        return m >= 10 ? "\(Int(m.rounded()))M" : String(format: "%.1fM", m)
+    func sig3(_ v: Double, _ suffix: String) -> String {
+        if v >= 100 { return "\(Int(v.rounded()))\(suffix)" }
+        if v >= 10  { return String(format: "%.1f\(suffix)", v) }
+        return String(format: "%.2f\(suffix)", v)
     }
-    if n >= 1_000 {
-        let k = Double(n) / 1_000
-        return k >= 10 ? "\(Int(k.rounded()))K" : String(format: "%.1fK", k)
-    }
+    if n >= 1_000_000 { return sig3(Double(n) / 1_000_000, "M") }
+    if n >= 1_000     { return sig3(Double(n) / 1_000, "K") }
     return "\(n)"
 }
 
