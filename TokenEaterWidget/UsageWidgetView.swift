@@ -49,23 +49,11 @@ struct UsageWidgetView: View {
     private func mediumUsageContent(_ usage: UsageResponse) -> some View {
         VStack(spacing: 0) {
             // Header
-            HStack(spacing: 5) {
-                Image("WidgetLogo")
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .frame(width: 12, height: 12)
-                Text("TokenEater")
-                    .font(.system(size: 10, weight: .heavy))
-                    .tracking(0.3)
-                    .foregroundStyle(Color(hex: theme.widgetText).opacity(0.5))
-                Spacer()
-                if entry.isStale {
-                    Image(systemName: "wifi.slash")
-                        .font(.system(size: 8))
-                        .foregroundStyle(Color(hex: theme.widgetText).opacity(0.4))
-                }
-            }
-            .padding(.bottom, 16)
+            Text(String(localized: "widget.header"))
+                .font(.system(size: 13, weight: .bold))
+                .tracking(0.3)
+                .foregroundStyle(Color(hex: theme.widgetText))
+                .padding(.bottom, 16)
 
             // Circular gauges
             HStack(spacing: 0) {
@@ -79,7 +67,7 @@ struct UsageWidgetView: View {
                 if let sevenDay = usage.sevenDay {
                     CircularUsageView(
                         label: String(localized: "widget.weekly"),
-                        resetInfo: formatResetDate(sevenDay.resetsAtDate),
+                        resetInfo: formatResetDate(sevenDay.resetsAtDate),  
                         utilization: sevenDay.utilization
                     )
                 }
@@ -93,13 +81,13 @@ struct UsageWidgetView: View {
             // Footer
             HStack {
                 Text(String(format: String(localized: "widget.updated"), entry.date.relativeFormatted))
-                    .font(.system(size: 8, design: .rounded))
-                    .foregroundStyle(Color(hex: theme.widgetText).opacity(0.3))
+                    .font(.system(size: 11, weight: .medium, design: .rounded))
+                    .foregroundColor(.white)
                 Spacer()
                 if entry.isStale {
                     Image(systemName: "wifi.slash")
-                        .font(.system(size: 8))
-                        .foregroundStyle(Color(hex: theme.widgetText).opacity(0.4))
+                        .font(.system(size: 11))
+                        .foregroundColor(.white)
                 }
             }
         }
@@ -109,33 +97,27 @@ struct UsageWidgetView: View {
     // MARK: - Large: Expanded View
 
     private func largeUsageContent(_ usage: UsageResponse) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 18) {
             // Header
             HStack(alignment: .center) {
-                Image("WidgetLogo")
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .frame(width: 16, height: 16)
-                Text("TokenEater")
-                    .font(.system(size: 16, weight: .bold, design: .rounded))
-                    .foregroundStyle(Color(hex: theme.widgetText).opacity(0.95))
+                Text(String(localized: "widget.header"))
+                    .font(.system(size: 18, weight: .bold, design: .rounded))
+                    .foregroundStyle(Color(hex: theme.widgetText))
                 Spacer()
                 if entry.isStale {
                     HStack(spacing: 3) {
                         Image(systemName: "wifi.slash")
-                            .font(.system(size: 9))
+                            .font(.system(size: 11))
                         Text("widget.offline")
-                            .font(.system(size: 9, design: .rounded))
+                            .font(.system(size: 11, design: .rounded))
                     }
-                    .foregroundStyle(Color(hex: theme.widgetText).opacity(0.4))
+                    .foregroundStyle(Color(hex: theme.widgetText))
                 }
             }
-            .padding(.bottom, 8)
 
             // Session (5h)
             if let fiveHour = usage.fiveHour {
                 LargeUsageBarView(
-                    icon: "timer",
                     label: String(localized: "widget.session"),
                     subtitle: String(localized: "widget.session.subtitle"),
                     resetInfo: formatResetTime(fiveHour.resetsAtDate),
@@ -146,7 +128,6 @@ struct UsageWidgetView: View {
             // Weekly — All models
             if let sevenDay = usage.sevenDay {
                 LargeUsageBarView(
-                    icon: "chart.bar.fill",
                     label: String(localized: "widget.weekly.full"),
                     subtitle: String(localized: "widget.weekly.subtitle"),
                     resetInfo: formatResetDate(sevenDay.resetsAtDate),
@@ -157,7 +138,6 @@ struct UsageWidgetView: View {
             // Weekly — Sonnet
             if let sonnet = usage.sevenDaySonnet {
                 LargeUsageBarView(
-                    icon: "wand.and.stars",
                     label: String(localized: "widget.sonnet"),
                     subtitle: String(localized: "widget.sonnet.subtitle"),
                     resetInfo: formatResetDate(sonnet.resetsAtDate),
@@ -168,7 +148,6 @@ struct UsageWidgetView: View {
             // Pacing
             if let pacing = PacingCalculator.calculate(from: usage) {
                 LargeUsageBarView(
-                    icon: "gauge.with.needle",
                     label: String(localized: "pacing.label"),
                     subtitle: pacing.message,
                     resetInfo: {
@@ -186,32 +165,27 @@ struct UsageWidgetView: View {
             Spacer(minLength: 0)
 
             // Footer
-            Rectangle()
-                .fill(.white.opacity(0.06))
-                .frame(height: 1)
-                .padding(.bottom, 4)
-
             HStack {
-                Text(String(format: String(localized: "widget.updated"), entry.date.relativeFormatted))
-                    .font(.system(size: 9, design: .rounded))
-                    .foregroundStyle(Color(hex: theme.widgetText).opacity(0.3))
+                Text(String(format: String(localized: "widget.updated"), entry.date.msFormatted))
+                    .font(.system(size: 13, weight: .regular))
+                    .foregroundStyle(Color(hex: theme.widgetText))
                 Spacer()
                 if entry.isStale {
-                    HStack(spacing: 3) {
+                    HStack(spacing: 4) {
                         Image(systemName: "wifi.slash")
-                            .font(.system(size: 9))
+                            .font(.system(size: 13))
                         Text("widget.offline")
-                            .font(.system(size: 9, design: .rounded))
+                            .font(.system(size: 13))
                     }
-                    .foregroundStyle(Color(hex: theme.widgetText).opacity(0.4))
+                    .foregroundStyle(Color(hex: theme.widgetText))
                 } else {
-                    HStack(spacing: 3) {
+                    HStack(spacing: 5) {
                         Circle()
-                            .fill(.green.opacity(0.6))
-                            .frame(width: 4, height: 4)
+                            .fill(.green)
+                            .frame(width: 6, height: 6)
                         Text(String(localized: "widget.refresh.interval"))
-                            .font(.system(size: 9, design: .rounded))
-                            .foregroundStyle(Color(hex: theme.widgetText).opacity(0.25))
+                            .font(.system(size: 13, weight: .regular))
+                            .foregroundStyle(Color(hex: theme.widgetText))
                     }
                 }
             }
@@ -234,7 +208,7 @@ struct UsageWidgetView: View {
                 )
             Text(message)
                 .font(.system(size: 12, design: .rounded))
-                .foregroundStyle(Color(hex: theme.widgetText).opacity(0.6))
+                .foregroundStyle(Color(hex: theme.widgetText))
                 .multilineTextAlignment(.center)
         }
         .padding()
@@ -248,7 +222,7 @@ struct UsageWidgetView: View {
                 .tint(.orange)
             Text("widget.loading")
                 .font(.system(size: 12, design: .rounded))
-                .foregroundStyle(Color(hex: theme.widgetText).opacity(0.4))
+                .foregroundStyle(Color(hex: theme.widgetText))
         }
     }
 
@@ -302,20 +276,20 @@ struct CircularUsageView: View {
                     .rotationEffect(.degrees(-90))
 
                 Text("\(Int(utilization))%")
-                    .font(.system(size: 12, weight: .black, design: .rounded))
+                    .font(.system(size: 15, weight: .black, design: .rounded))
                     .monospacedDigit()
                     .foregroundStyle(Color(hex: theme.widgetText))
             }
-            .frame(width: 50, height: 50)
+            .frame(width: 62, height: 62)
 
             VStack(spacing: 2) {
                 Text(label)
-                    .font(.system(size: 10, weight: .bold))
+                    .font(.system(size: 13, weight: .bold))
                     .tracking(0.2)
-                    .foregroundStyle(Color(hex: theme.widgetText).opacity(0.85))
+                    .foregroundStyle(Color(hex: theme.widgetText))
                 Text(resetInfo)
-                    .font(.system(size: 8, weight: .medium))
-                    .foregroundStyle(Color(hex: theme.widgetText).opacity(0.4))
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(Color(hex: theme.widgetText))
             }
         }
         .frame(maxWidth: .infinity)
@@ -352,24 +326,24 @@ struct CircularPacingView: View {
                 Circle()
                     .fill(Color.white.opacity(0.7))
                     .frame(width: 4, height: 4)
-                    .offset(x: 25 * cos(angle * .pi / 180), y: 25 * sin(angle * .pi / 180))
+                    .offset(x: 31 * cos(angle * .pi / 180), y: 31 * sin(angle * .pi / 180))
 
                 let sign = pacing.delta >= 0 ? "+" : ""
                 Text("\(sign)\(Int(pacing.delta))%")
-                    .font(.system(size: 10, weight: .black, design: .rounded))
+                    .font(.system(size: 13, weight: .black, design: .rounded))
                     .monospacedDigit()
                     .foregroundStyle(ringColor)
             }
-            .frame(width: 50, height: 50)
+            .frame(width: 62, height: 62)
 
             VStack(spacing: 2) {
                 Text("pacing.label")
-                    .font(.system(size: 10, weight: .bold))
+                    .font(.system(size: 13, weight: .bold))
                     .tracking(0.2)
-                    .foregroundStyle(Color(hex: theme.widgetText).opacity(0.85))
+                    .foregroundStyle(Color(hex: theme.widgetText))
                 Text(pacing.message)
-                    .font(.system(size: 7, weight: .medium))
-                    .foregroundStyle(ringColor.opacity(0.7))
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(ringColor)
                     .lineLimit(1)
             }
         }
@@ -380,7 +354,6 @@ struct CircularPacingView: View {
 // MARK: - Large Usage Bar View
 
 struct LargeUsageBarView: View {
-    let icon: String
     let label: String
     let subtitle: String
     let resetInfo: String
@@ -405,38 +378,32 @@ struct LargeUsageBarView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .center) {
-                Image(systemName: icon)
-                    .font(.system(size: 11))
-                    .foregroundStyle(accentColor.opacity(0.8))
-                    .frame(width: 16)
-
-                VStack(alignment: .leading, spacing: 1) {
+                VStack(alignment: .leading, spacing: 2) {
                     Text(label)
-                        .font(.system(size: 13, weight: .bold))
-                        .tracking(0.2)
-                        .foregroundStyle(Color(hex: theme.widgetText).opacity(0.9))
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(Color(hex: theme.widgetText))
                     Text(subtitle)
-                        .font(.system(size: 9, weight: .medium))
-                        .foregroundStyle(Color(hex: theme.widgetText).opacity(0.35))
+                        .font(.system(size: 12, weight: .regular))
+                        .foregroundStyle(Color(hex: theme.widgetText))
                 }
 
                 Spacer()
 
-                VStack(alignment: .trailing, spacing: 1) {
+                VStack(alignment: .trailing, spacing: 2) {
                     Text(displayText ?? "\(Int(utilization))%")
-                        .font(.system(size: 16, weight: .black, design: .rounded))
+                        .font(.system(size: 16, weight: .bold, design: .rounded))
                         .monospacedDigit()
                         .foregroundStyle(accentColor)
                     Text(String(format: String(localized: "widget.reset"), resetInfo))
-                        .font(.system(size: 8, weight: .medium))
-                        .foregroundStyle(Color(hex: theme.widgetText).opacity(0.3))
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(Color(hex: theme.widgetText))
                 }
             }
 
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
                     RoundedRectangle(cornerRadius: 3)
-                        .fill(.white.opacity(0.08))
+                        .fill(.white.opacity(0.12))
                     RoundedRectangle(cornerRadius: 3)
                         .fill(barGradient)
                         .frame(width: max(0, geo.size.width * min(utilization, 100) / 100))

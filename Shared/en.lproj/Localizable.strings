@@ -7,16 +7,17 @@
 "menubar.updated" = "Updated %@";
 
 /* Metrics */
-"metric.session" = "Session 5h";
+"metric.session" = "Session 4h";
 "metric.weekly" = "Weekly";
 "metric.sonnet" = "Sonnet";
 "metric.reset" = "reset %@";
 
 /* Widget */
+"widget.header" = "Claude Usage";
 "widget.session" = "Session";
 "widget.weekly" = "Weekly";
 "widget.sonnet" = "Sonnet";
-"widget.session.subtitle" = "5h sliding window";
+"widget.session.subtitle" = "4h sliding window";
 "widget.weekly.full" = "Weekly";
 "widget.weekly.subtitle" = "Opus + Sonnet + Haiku";
 "widget.sonnet.subtitle" = "Dedicated limit";
@@ -24,8 +25,8 @@
 "widget.loading" = "Loading...";
 "widget.reset" = "Reset %@";
 "widget.soon" = "Soon";
-"widget.updated" = "Upd. %@";
-"widget.refresh.interval" = "15 min";
+"widget.updated" = "Updated in %@";
+"widget.refresh.interval" = "1 min";
 "widget.refresh.button" = "Refresh";
 "widget.description.usage" = "Monitor your Claude usage in real time";
 "widget.description.pacing" = "Your Claude usage pace";

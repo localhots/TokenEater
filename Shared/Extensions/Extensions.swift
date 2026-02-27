@@ -54,4 +54,17 @@ extension Date {
         formatter.unitsStyle = .abbreviated
         return formatter.localizedString(for: self, relativeTo: Date())
     }
+
+    var msFormatted: String {
+        let elapsed = Date().timeIntervalSince(self)
+        if elapsed < 1 {
+            return "\(Int(elapsed * 1000))ms"
+        } else if elapsed < 60 {
+            return String(format: "%.1fs", elapsed)
+        } else {
+            let formatter = RelativeDateTimeFormatter()
+            formatter.unitsStyle = .abbreviated
+            return formatter.localizedString(for: self, relativeTo: Date())
+        }
+    }
 }
