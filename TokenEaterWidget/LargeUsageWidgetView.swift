@@ -154,7 +154,7 @@ struct LargeUsageBarView: View {
                         .font(.system(size: 16, weight: .bold, design: .rounded))
                         .monospacedDigit()
                         .foregroundStyle(accentColor)
-                    Text(String(format: String(localized: "widget.reset"), resetInfo))
+                    Text(resetInfo)
                         .font(.system(size: 12, weight: .medium))
                         .foregroundStyle(Color(hex: theme.widgetText))
                 }

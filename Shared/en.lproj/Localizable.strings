@@ -23,7 +23,6 @@
 "widget.sonnet.subtitle" = "Dedicated limit";
 "widget.offline" = "Offline";
 "widget.loading" = "Loading...";
-"widget.reset" = "Reset %@";
 "widget.soon" = "Soon";
 "widget.updated" = "Updated in %@";
 "widget.refresh.interval" = "1 min";
