@@ -7,7 +7,7 @@
 "menubar.updated" = "Updated %@";
 
 /* Metrics */
-"metric.session" = "Session 4h";
+"metric.session" = "Session 5h";
 "metric.weekly" = "Weekly";
 "metric.sonnet" = "Sonnet";
 "metric.reset" = "reset %@";
@@ -17,7 +17,7 @@
 "widget.session" = "Session";
 "widget.weekly" = "Weekly";
 "widget.sonnet" = "Sonnet";
-"widget.session.subtitle" = "4h sliding window";
+"widget.session.subtitle" = "5h sliding window";
 "widget.weekly.full" = "Weekly";
 "widget.weekly.subtitle" = "Opus + Sonnet + Haiku";
 "widget.sonnet.subtitle" = "Dedicated limit";

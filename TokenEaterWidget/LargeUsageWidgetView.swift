@@ -75,34 +75,40 @@ struct LargeUsageWidgetView: View {
 
             Spacer(minLength: 0)
 
-            // Footer
+            // Footer — cumulative token usage per model
+            let stats = entry.modelStats ?? []
             HStack {
-                Text(String(format: String(localized: "widget.updated"), entry.date.msFormatted))
-                    .font(.system(size: 13, weight: .regular))
-                    .foregroundStyle(Color(hex: theme.widgetText))
                 Spacer()
-                if entry.isStale {
-                    HStack(spacing: 4) {
-                        Image(systemName: "wifi.slash")
-                            .font(.system(size: 13))
-                        Text("widget.offline")
-                            .font(.system(size: 13))
-                    }
-                    .foregroundStyle(Color(hex: theme.widgetText))
+                if stats.isEmpty {
+                    Text("No token data")
+                        .font(.system(size: 11, weight: .regular, design: .rounded))
+                        .foregroundStyle(Color(hex: theme.widgetText).opacity(0.4))
                 } else {
-                    HStack(spacing: 5) {
-                        Circle()
-                            .fill(.green)
-                            .frame(width: 6, height: 6)
-                        Text(String(localized: "widget.refresh.interval"))
-                            .font(.system(size: 13, weight: .regular))
-                            .foregroundStyle(Color(hex: theme.widgetText))
-                    }
+                    Text(stats.map { "\($0.modelName): \(formatTokenCount($0.totalTokens))" }.joined(separator: " · "))
+                        .font(.system(size: 11, weight: .medium, design: .rounded))
+                        .foregroundStyle(Color(hex: theme.widgetText).opacity(0.7))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
                 }
+                Spacer()
             }
         }
         .padding(4)
     }
+}
+
+// MARK: - Helpers
+
+private func formatTokenCount(_ n: Int) -> String {
+    if n >= 1_000_000 {
+        let m = Double(n) / 1_000_000
+        return m >= 10 ? "\(Int(m.rounded()))M" : String(format: "%.1fM", m)
+    }
+    if n >= 1_000 {
+        let k = Double(n) / 1_000
+        return k >= 10 ? "\(Int(k.rounded()))K" : String(format: "%.1fK", k)
+    }
+    return "\(n)"
 }
 
 // MARK: - Large Usage Bar View

@@ -63,6 +63,13 @@ struct UsageBucket: Codable {
     }
 }
 
+// MARK: - Model Token Stats
+
+struct ModelTokenStats: Codable, Equatable {
+    let modelName: String
+    let totalTokens: Int
+}
+
 // MARK: - Cached Usage (for offline support)
 
 struct CachedUsage: Codable {

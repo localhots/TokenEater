@@ -114,6 +114,18 @@ struct UsageRepositoryTests {
         #expect(response.fiveHour?.utilization == 10)
     }
 
+    @Test("refreshUsage writes model stats to shared file")
+    func refreshUsageWritesModelStats() async throws {
+        let (repo, api, _, sharedFile) = makeSUT()
+        sharedFile._oauthToken = "tok"
+        api.stubbedUsage = .fixture()
+
+        _ = try await repo.refreshUsage(proxyConfig: nil)
+
+        // modelStats is set (may be empty in test env, but the call must have occurred)
+        #expect(sharedFile._modelStats != nil)
+    }
+
     @Test("refreshUsage throws noToken when not configured")
     func refreshUsageThrowsNoToken() async {
         let (repo, _, _, _) = makeSUT()

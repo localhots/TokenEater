@@ -6,12 +6,14 @@ struct UsageEntry: TimelineEntry {
     let usage: UsageResponse?
     let error: String?
     let isStale: Bool
+    let modelStats: [ModelTokenStats]?
 
-    init(date: Date, usage: UsageResponse?, error: String? = nil, isStale: Bool = false) {
+    init(date: Date, usage: UsageResponse?, error: String? = nil, isStale: Bool = false, modelStats: [ModelTokenStats]? = nil) {
         self.date = date
         self.usage = usage
         self.error = error
         self.isStale = isStale
+        self.modelStats = modelStats
     }
 
     private static func iso8601String(from date: Date) -> String {

@@ -37,7 +37,8 @@ struct Provider: TimelineProvider {
             return UsageEntry(
                 date: Date(),
                 usage: cached.usage,
-                isStale: isStale
+                isStale: isStale,
+                modelStats: sharedFile.modelStats
             )
         }
 

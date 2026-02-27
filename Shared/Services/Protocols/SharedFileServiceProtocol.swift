@@ -7,8 +7,10 @@ protocol SharedFileServiceProtocol: Sendable {
     var lastSyncDate: Date? { get }
     var theme: ThemeColors { get }
     var thresholds: UsageThresholds { get }
+    var modelStats: [ModelTokenStats]? { get }
 
     func updateAfterSync(usage: CachedUsage, syncDate: Date)
     func updateTheme(_ theme: ThemeColors, thresholds: UsageThresholds)
+    func updateModelStats(_ stats: [ModelTokenStats])
     func clear()
 }

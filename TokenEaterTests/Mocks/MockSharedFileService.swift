@@ -6,6 +6,7 @@ final class MockSharedFileService: SharedFileServiceProtocol, @unchecked Sendabl
     var _lastSyncDate: Date?
     var _theme: ThemeColors = .default
     var _thresholds: UsageThresholds = .default
+    var _modelStats: [ModelTokenStats]?
     var updateAfterSyncCallCount = 0
     var updateThemeCallCount = 0
 
@@ -20,6 +21,7 @@ final class MockSharedFileService: SharedFileServiceProtocol, @unchecked Sendabl
     var lastSyncDate: Date? { _lastSyncDate }
     var theme: ThemeColors { _theme }
     var thresholds: UsageThresholds { _thresholds }
+    var modelStats: [ModelTokenStats]? { _modelStats }
 
     func updateAfterSync(usage: CachedUsage, syncDate: Date) {
         updateAfterSyncCallCount += 1
@@ -31,6 +33,10 @@ final class MockSharedFileService: SharedFileServiceProtocol, @unchecked Sendabl
         updateThemeCallCount += 1
         _theme = theme
         _thresholds = thresholds
+    }
+
+    func updateModelStats(_ stats: [ModelTokenStats]) {
+        _modelStats = stats
     }
 
     func clear() {

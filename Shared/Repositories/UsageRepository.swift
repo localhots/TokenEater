@@ -53,6 +53,7 @@ final class UsageRepository: UsageRepositoryProtocol {
                 usage: CachedUsage(usage: usage, fetchDate: Date()),
                 syncDate: Date()
             )
+            sharedFileService.updateModelStats(ClaudeJsonReader().readModelStats())
             return usage
         } catch APIError.tokenExpired {
             return try await attemptSilentTokenRecovery(proxyConfig: proxyConfig)
@@ -88,6 +89,7 @@ final class UsageRepository: UsageRepositoryProtocol {
             usage: CachedUsage(usage: usage, fetchDate: Date()),
             syncDate: Date()
         )
+        sharedFileService.updateModelStats(ClaudeJsonReader().readModelStats())
         return usage
     }
 }

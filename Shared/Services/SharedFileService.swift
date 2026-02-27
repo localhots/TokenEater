@@ -57,6 +57,7 @@ final class SharedFileService: SharedFileServiceProtocol, @unchecked Sendable {
         var lastSyncDate: Date?
         var theme: ThemeColors?
         var thresholds: UsageThresholds?
+        var modelStats: [ModelTokenStats]?
     }
 
     private func load() -> SharedData {
@@ -101,6 +102,10 @@ final class SharedFileService: SharedFileServiceProtocol, @unchecked Sendable {
         load().thresholds ?? .default
     }
 
+    var modelStats: [ModelTokenStats]? {
+        load().modelStats
+    }
+
     func updateAfterSync(usage: CachedUsage, syncDate: Date) {
         var data = load()
         data.cachedUsage = usage
@@ -112,6 +117,12 @@ final class SharedFileService: SharedFileServiceProtocol, @unchecked Sendable {
         var data = load()
         data.theme = theme
         data.thresholds = thresholds
+        save(data)
+    }
+
+    func updateModelStats(_ stats: [ModelTokenStats]) {
+        var data = load()
+        data.modelStats = stats
         save(data)
     }
 
