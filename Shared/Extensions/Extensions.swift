@@ -48,6 +48,24 @@ extension NSColor {
 
 // MARK: - Date Relative Format
 
+extension Optional where Wrapped == Date {
+    var widgetResetTimeFormatted: String {
+        guard let date = self else { return "" }
+        let interval = date.timeIntervalSinceNow
+        guard interval > 0 else { return String(localized: "widget.soon") }
+        let hours = Int(interval) / 3600
+        let minutes = (Int(interval) % 3600) / 60
+        return hours > 0 ? "\(hours)h\(String(format: "%02d", minutes))" : "\(minutes) min"
+    }
+
+    var widgetResetDateFormatted: String {
+        guard let date = self else { return "" }
+        let formatter = DateFormatter()
+        formatter.dateFormat = "EEE HH:mm"
+        return formatter.string(from: date)
+    }
+}
+
 extension Date {
     var relativeFormatted: String {
         let formatter = RelativeDateTimeFormatter()
