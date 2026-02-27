@@ -53,9 +53,12 @@ extension Optional where Wrapped == Date {
         guard let date = self else { return "" }
         let interval = date.timeIntervalSinceNow
         guard interval > 0 else { return String(localized: "widget.soon") }
-        let hours = Int(interval) / 3600
+        let days = Int(interval) / 86400
+        let hours = (Int(interval) % 86400) / 3600
         let minutes = (Int(interval) % 3600) / 60
-        return hours > 0 ? "\(hours)h\(String(format: "%02d", minutes))" : "\(minutes) min"
+        if days > 0 { return String(format: String(localized: "duration.days.hours"), days, hours) }
+        if hours > 0 { return "\(hours)h \(minutes)m" }
+        return "\(minutes) min"
     }
 
     var widgetResetDateFormatted: String {
