@@ -46,19 +46,9 @@ final class ClaudeJsonReader: @unchecked Sendable {
 
     private func shortModelName(_ id: String) -> String {
         let lower = id.lowercased()
-
-        let displayName: String
-        if lower.contains("opus") { displayName = "Opus" }
-        else if lower.contains("sonnet") { displayName = "Sonnet" }
-        else if lower.contains("haiku") { displayName = "Haiku" }
-        else { return id }
-
-        // e.g. "claude-sonnet-4-6-20251101" → drop first 2, strip 8-digit date → "4.6"
-        let parts = lower.components(separatedBy: "-")
-        let version = parts.dropFirst(2)
-            .filter { !($0.count == 8 && Int($0) != nil) }
-            .joined(separator: ".")
-
-        return version.isEmpty ? displayName : "\(displayName) \(version)"
+        if lower.contains("opus") { return "Opus" }
+        if lower.contains("sonnet") { return "Sonnet" }
+        if lower.contains("haiku") { return "Haiku" }
+        return id
     }
 }

@@ -19,9 +19,9 @@ struct ClaudeJsonReaderTests {
 
         #expect(stats.count == 3)
 
-        let sonnet = stats.first { $0.modelName == "Sonnet 4.5" }
-        let opus   = stats.first { $0.modelName == "Opus 4.5" }
-        let haiku  = stats.first { $0.modelName == "Haiku 4.5" }
+        let sonnet = stats.first { $0.modelName == "Sonnet" }
+        let opus   = stats.first { $0.modelName == "Opus" }
+        let haiku  = stats.first { $0.modelName == "Haiku" }
 
         // project-a Sonnet: 2000 + 800 = 2800
         #expect(sonnet?.totalTokens == 2800)
@@ -73,7 +73,7 @@ struct ClaudeJsonReaderTests {
 
         let stats = ClaudeJsonReader(filePath: url.path).readModelStats()
         #expect(stats.count == 1)
-        #expect(stats.first?.modelName == "Sonnet 4.6")
+        #expect(stats.first?.modelName == "Sonnet")
         #expect(stats.first?.totalTokens == 1500)
     }
 
