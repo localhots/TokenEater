@@ -1,36 +1,35 @@
-# TokenEater - Instructions projet
+# TokenEater - Project Instructions
 
-## Langue
+## Language
 
-- **GitHub (issues, PRs, commits, branches) : toujours en anglais**
-- Conversations avec l'utilisateur : en français (cf. instructions globales)
+- All communication (GitHub, conversations, code comments): **English**
 
-## Build & Test local
+## Build & Test Local
 
-### Prérequis
-- **Xcode 16.4** (version identique au CI `macos-15`) — installé via `xcodes install 16.4`
+### Prerequisites
+- **Xcode 16.4** (same version as CI `macos-15`) — install via `xcodes install 16.4`
 - XcodeGen (`brew install xcodegen`)
-- Le `DEVELOPMENT_TEAM` n'est pas dans `project.yml` — il est détecté automatiquement depuis le certificat Apple local
+- `DEVELOPMENT_TEAM` is not in `project.yml` — it is auto-detected from the local Apple certificate
 
-### Toolchain CI (iso-prod)
+### CI Toolchain (iso-prod)
 
-Le CI (`macos-15`) utilise **Xcode 16.4 / Swift 6.1.2**. Pour builder localement un binaire identique à ce que les users reçoivent via brew cask :
+CI (`macos-15`) uses **Xcode 16.4 / Swift 6.1.2**. To build a binary locally identical to what users receive via brew cask:
 
 ```bash
 export DEVELOPER_DIR=/Applications/Xcode-16.4.0.app/Contents/Developer
 ```
 
-**NE PAS** mettre à jour le runner CI vers un Xcode plus récent sans tester — `@Observable` a des bugs d'optimisation en Release avec Swift 6.1.x qui ne se reproduisent pas avec Swift 6.2+. Voir la section Notes techniques.
+**DO NOT** update the CI runner to a newer Xcode without testing — `@Observable` has Release optimization bugs with Swift 6.1.x that don't reproduce with Swift 6.2+. See Technical Notes section.
 
-Pour installer Xcode 16.4 à côté de la version courante :
+To install Xcode 16.4 alongside the current version:
 ```bash
-brew install xcodes  # si pas déjà installé
+brew install xcodes  # if not already installed
 xcodes install 16.4 --directory /Applications
 ```
 
-### Tests unitaires
+### Unit Tests
 
-**80 tests** couvrent la logique métier (stores, repository, pacing, token recovery). Les tests ne couvrent PAS le rendu SwiftUI ni le widget en conditions réelles — pour ça, utiliser le build + nuke + install.
+**80 tests** cover business logic (stores, repository, pacing, token recovery). Tests do NOT cover SwiftUI rendering or the widget under real conditions — for that, use build + nuke + install.
 
 ```bash
 xcodegen generate
@@ -41,23 +40,23 @@ xcodebuild -project TokenEater.xcodeproj -scheme TokenEaterTests \
   test
 ```
 
-**Quand lancer les tests :**
-- Avant chaque commit qui touche `Shared/` (stores, services, repository, helpers, models)
-- Le CI (`ci.yml`) les lance automatiquement sur chaque PR et push sur main
+**When to run tests:**
+- Before every commit touching `Shared/` (stores, services, repository, helpers, models)
+- CI (`ci.yml`) runs them automatically on every PR and push to main
 
-**Quand tester manuellement (build + nuke + install) :**
-- Changements SwiftUI (vues, layout, bindings)
-- Changements widget (timeline, rendu)
-- Toujours en **Release** avec Xcode 16.4 pour les changements SwiftUI
+**When to test manually (build + nuke + install):**
+- SwiftUI changes (views, layout, bindings)
+- Widget changes (timeline, rendering)
+- Always in **Release** with Xcode 16.4 for SwiftUI changes
 
-**Écriture de tests :**
-- Framework : Swift Testing (`import Testing`, `@Test`, `#expect`)
-- Les mocks sont dans `TokenEaterTests/Mocks/` — chaque service a son mock protocol-based
-- Les fixtures sont dans `TokenEaterTests/Fixtures/`
-- Les stores sont `@MainActor` → les suites de test doivent aussi être `@MainActor`
-- `UserDefaults.standard` est partagé entre tests → utiliser `.serialized` sur les suites qui écrivent dans UserDefaults + nettoyer dans un helper
+**Writing tests:**
+- Framework: Swift Testing (`import Testing`, `@Test`, `#expect`)
+- Mocks are in `TokenEaterTests/Mocks/` — each service has a protocol-based mock
+- Fixtures are in `TokenEaterTests/Fixtures/`
+- Stores are `@MainActor` → test suites must also be `@MainActor`
+- `UserDefaults.standard` is shared between tests → use `.serialized` on suites that write to UserDefaults + clean up in a helper
 
-### Build seul (sans install)
+### Build Only (without install)
 ```bash
 xcodegen generate
 DEVELOPMENT_TEAM=$(security find-certificate -c "Apple Development" -p | openssl x509 -noout -subject 2>/dev/null | grep -oE 'OU=[A-Z0-9]{10}' | head -1 | cut -d= -f2)
@@ -67,9 +66,9 @@ xcodebuild -project TokenEater.xcodeproj -scheme TokenEaterApp -configuration Re
 
 ### Build + Nuke + Install (one-liner)
 
-**Utiliser cette commande pour tester en local.** Elle fait tout d'un coup : build Release, kill les processus, nuke tous les caches (app + widget + chrono + LaunchServices), désenregistre le plugin, installe, réenregistre et lance.
+**Use this command to test locally.** It does everything at once: Release build, kills processes, nukes all caches (app + widget + chrono + LaunchServices), unregisters the plugin, installs, re-registers and launches.
 
-macOS cache agressivement les widget extensions (binaire, timeline, rendu). Le nuke est **obligatoire** sinon l'ancien code reste en mémoire.
+macOS aggressively caches widget extensions (binary, timeline, rendering). The nuke is **mandatory** otherwise old code stays in memory.
 
 ```bash
 # Build
@@ -77,7 +76,7 @@ xcodegen generate && \
 plutil -insert NSExtension -json '{"NSExtensionPointIdentifier":"com.apple.widgetkit-extension"}' TokenEaterWidget/Info.plist 2>/dev/null; \
 xcodebuild -project TokenEater.xcodeproj -scheme TokenEaterApp -configuration Release -derivedDataPath build -allowProvisioningUpdates DEVELOPMENT_TEAM=S7B8M9JYF4 build 2>&1 | tail -3 && \
 \
-# Nuke : kill processus + caches + plugin
+# Nuke: kill processes + caches + plugin
 killall TokenEater 2>/dev/null; killall NotificationCenter 2>/dev/null; killall chronod 2>/dev/null; \
 rm -rf ~/Library/Application\ Support/com.tokeneater.shared && \
 rm -rf ~/Library/Application\ Support/com.claudeusagewidget.shared && \
@@ -100,105 +99,105 @@ sleep 2 && \
 open /Applications/TokenEater.app
 ```
 
-#### Ce que fait le nuke (pourquoi chaque étape est nécessaire)
+#### What the nuke does (why each step is necessary)
 
-| Étape | Pourquoi |
-|-------|----------|
-| `killall TokenEater/NotificationCenter/chronod` | L'app et les daemons widget gardent l'ancien binaire en mémoire |
-| `rm -rf ~/Library/Application Support/com.tokeneater.shared` | Supprime le JSON partagé (token + cache usage) — repart à zéro |
-| `rm -rf ~/Library/Application Support/com.claudeusagewidget.shared` | Supprime l'ancien répertoire partagé (migration) |
-| `rm -rf ~/Library/Group Containers/...` | Ancien group container (plus utilisé mais peut rester) |
-| `rm -rf /private/var/folders/.../com.apple.chrono` | **Le plus important** : caches WidgetKit de macOS (timeline, rendu, binaire widget). Sans ça, macOS continue d'utiliser l'ancien widget |
-| `pluginkit -r` | Désenregistre l'extension widget pour que macOS ne garde pas l'ancienne en mémoire |
-| `lsregister -f -R` | Force LaunchServices à re-scanner le .app (sinon macOS peut garder les métadonnées de l'ancienne version) |
+| Step | Why |
+|------|-----|
+| `killall TokenEater/NotificationCenter/chronod` | The app and widget daemons keep the old binary in memory |
+| `rm -rf ~/Library/Application Support/com.tokeneater.shared` | Deletes the shared JSON (token + usage cache) — starts fresh |
+| `rm -rf ~/Library/Application Support/com.claudeusagewidget.shared` | Deletes the old shared directory (migration) |
+| `rm -rf ~/Library/Group Containers/...` | Old group container (no longer used but may remain) |
+| `rm -rf /private/var/folders/.../com.apple.chrono` | **Most important**: macOS WidgetKit caches (timeline, rendering, widget binary). Without this, macOS keeps using the old widget |
+| `pluginkit -r` | Unregisters the widget extension so macOS doesn't keep the old one in memory |
+| `lsregister -f -R` | Forces LaunchServices to re-scan the .app (otherwise macOS may keep old version metadata) |
 
-**Après l'install** : supprimer l'ancien widget du bureau et en ajouter un nouveau (clic droit → Modifier les widgets → TokenEater).
+**After install**: remove the old widget from the desktop and add a new one (right-click → Edit Widgets → TokenEater).
 
 ## Architecture
 
-Le codebase suit **MV Pattern + Repository Pattern + Protocol-Oriented Design** avec `ObservableObject` + `@Published` :
+The codebase follows **MV Pattern + Repository Pattern + Protocol-Oriented Design** with `ObservableObject` + `@Published`:
 
 ### Layers
-- **Models** (`Shared/Models/`) : Structs Codable pures (UsageResponse, ThemeColors, ProxyConfig, MetricModels, PacingModels)
-- **Services** (`Shared/Services/`) : I/O single-responsibility avec design protocol-based (APIClient, KeychainService, SharedFileService, NotificationService)
-- **Repository** (`Shared/Repositories/`) : Orchestre le pipeline Keychain → API → SharedFile
-- **Stores** (`Shared/Stores/`) : Conteneurs d'état `ObservableObject` injectés via `@EnvironmentObject` (UsageStore, ThemeStore, SettingsStore)
-- **Helpers** (`Shared/Helpers/`) : Fonctions pures (PacingCalculator, MenuBarRenderer)
+- **Models** (`Shared/Models/`): Pure Codable structs (UsageResponse, ThemeColors, ProxyConfig, MetricModels, PacingModels)
+- **Services** (`Shared/Services/`): Single-responsibility I/O with protocol-based design (APIClient, KeychainService, SharedFileService, NotificationService)
+- **Repository** (`Shared/Repositories/`): Orchestrates the Keychain → API → SharedFile pipeline
+- **Stores** (`Shared/Stores/`): `ObservableObject` state containers injected via `@EnvironmentObject` (UsageStore, ThemeStore, SettingsStore)
+- **Helpers** (`Shared/Helpers/`): Pure functions (PacingCalculator, MenuBarRenderer)
 
 ### Key Patterns
-- **Pas de singletons** — toutes les dépendances sont injectées
-- **@EnvironmentObject DI** — les stores sont passés via `.environmentObject()` SwiftUI
-- **Services protocol-based** — chaque service a un protocole pour la testabilité
-- **Strategy pattern pour les thèmes** — presets ThemeColors + support thème custom
+- **No singletons** — all dependencies are injected
+- **@EnvironmentObject DI** — stores are passed via `.environmentObject()` SwiftUI
+- **Protocol-based services** — each service has a protocol for testability
+- **Strategy pattern for themes** — ThemeColors presets + custom theme support
 
-### Partage App/Widget
-- **App principale** (sandboxée) : lit le token OAuth depuis le Keychain Claude Code, appelle l'API, écrit les données dans `~/Library/Application Support/com.tokeneater.shared/shared.json`
-- **Widget** (sandboxé, read-only) : lit le fichier JSON partagé via `SharedFileService`, affiche les données. Ne touche ni au Keychain ni au réseau.
-- Le partage utilise des `temporary-exception` entitlements (pas d'App Groups — incompatible avec les comptes Apple Developer gratuits sur macOS Sequoia)
-- Migration automatique depuis l'ancien chemin `com.claudeusagewidget.shared/` — code de migration conservé indéfiniment pour les mises à jour tardives via Homebrew Cask
+### App/Widget Sharing
+- **Main app** (sandboxed): reads the OAuth token from the Claude Code Keychain, calls the API, writes data to `~/Library/Application Support/com.tokeneater.shared/shared.json`
+- **Widget** (sandboxed, read-only): reads the shared JSON file via `SharedFileService`, displays the data. Does not touch Keychain or network.
+- Sharing uses `temporary-exception` entitlements (no App Groups — incompatible with free Apple Developer accounts on macOS Sequoia)
+- Auto-migration from the old `com.claudeusagewidget.shared/` path — migration code kept indefinitely for late updates via Homebrew Cask
 
-## Règles SwiftUI — ne pas enfreindre
+## SwiftUI Rules — Do Not Break
 
-Leçons apprises à la dure. Chaque règle a causé un bug en production.
+Hard-learned lessons. Each rule caused a production bug.
 
 ### App struct
 
-- **PAS de `@StateObject` dans le `App` struct** — utiliser `private let` pour les stores. `@StateObject` force `App.body` à se ré-évaluer sur chaque `objectWillChange` de n'importe quel store, ce qui cascade dans tout l'arbre de vues. Les stores sont injectés via `.environmentObject()`, les vues enfants les observent individuellement.
-- Utiliser `@AppStorage` pour les bindings nécessaires au niveau App (ex: `isInserted` du `MenuBarExtra`), pas un binding vers un store.
+- **NO `@StateObject` in the `App` struct** — use `private let` for stores. `@StateObject` forces `App.body` to re-evaluate on every `objectWillChange` from any store, cascading through the entire view tree. Stores are injected via `.environmentObject()`, child views observe them individually.
+- Use `@AppStorage` for bindings needed at the App level (e.g., `isInserted` for `MenuBarExtra`), not a binding to a store.
 
 ### Bindings
 
-- **PAS de binding vers des computed properties** — `$store.computedProp` crée un `LocationProjection` instable que l'AttributeGraph ne peut jamais mémoïser → boucle infinie. Utiliser `@State` local + `.onChange` pour synchroniser.
-- **PAS de `Binding(get:set:)`** — les closures ne sont pas `Equatable`, AG voit toujours "différent" → ré-évaluation infinie. Même solution : `@State` + `.onChange`.
+- **NO binding to computed properties** — `$store.computedProp` creates an unstable `LocationProjection` that AttributeGraph can never memoize → infinite loop. Use local `@State` + `.onChange` to synchronize.
+- **NO `Binding(get:set:)`** — closures are not `Equatable`, AG always sees "different" → infinite re-evaluation. Same solution: `@State` + `.onChange`.
 
 ### Keychain
 
-- **Toujours utiliser `readOAuthTokenSilently()` (`kSecUseAuthenticationUISkip`)** pour les lectures automatiques (refresh, recovery, popover open). La lecture interactive (`readOAuthToken()`) est réservée **uniquement** au premier connect pendant l'onboarding.
-- Ne jamais ajouter de nouveau call site pour `syncKeychainToken()` (interactif) — utiliser `syncKeychainTokenSilently()`.
+- **Always use `readOAuthTokenSilently()` (`kSecUseAuthenticationUISkip`)** for automatic reads (refresh, recovery, popover open). Interactive reading (`readOAuthToken()`) is reserved **only** for the first connect during onboarding.
+- Never add a new call site for `syncKeychainToken()` (interactive) — use `syncKeychainTokenSilently()`.
 
-### Observation framework
+### Observation Framework
 
-- **PAS de `@Observable`** — voir section dédiée ci-dessous.
-- **PAS de `@Bindable`** — utiliser `$store.property` via `@EnvironmentObject`.
-- **PAS de `@Environment(Store.self)`** — utiliser `@EnvironmentObject var store: Store`.
+- **NO `@Observable`** — see dedicated section below.
+- **NO `@Bindable`** — use `$store.property` via `@EnvironmentObject`.
+- **NO `@Environment(Store.self)`** — use `@EnvironmentObject var store: Store`.
 
-### Précautions Release builds
+### Release Build Precautions
 
-- Les bugs SwiftUI se manifestent **uniquement en Release** (optimisations du compilateur + pas d'AnyView wrapping). Toujours tester en Release avec `DEVELOPER_DIR` pointant vers Xcode 16.4 avant de valider un fix SwiftUI.
-- `SWIFT_ENABLE_OPAQUE_TYPE_ERASURE` (Xcode 16+) wrappe les vues en `AnyView` en Debug, masquant les problèmes d'identité de vue.
+- SwiftUI bugs manifest **only in Release** (compiler optimizations + no AnyView wrapping). Always test in Release with `DEVELOPER_DIR` pointing to Xcode 16.4 before validating a SwiftUI fix.
+- `SWIFT_ENABLE_OPAQUE_TYPE_ERASURE` (Xcode 16+) wraps views in `AnyView` in Debug, masking view identity issues.
 
-## Notes techniques
+## Technical Notes
 
-- `UserDefaults(suiteName:)` ne fonctionne PAS pour le partage app/widget avec un compte Apple gratuit (Personal Team) — `cfprefsd` vérifie le provisioning profile
-- `FileManager.containerURL(forSecurityApplicationGroupIdentifier:)` retourne une URL sur macOS même sans provisioning valide, mais le sandbox bloque l'accès côté widget
-- `FileManager.default.homeDirectoryForCurrentUser` retourne le chemin sandbox container, pas le vrai home — utiliser `getpwuid(getuid())` pour le vrai chemin
-- WidgetKit exige `app-sandbox: true` — un widget sans sandbox ne s'affiche pas
+- `UserDefaults(suiteName:)` does NOT work for app/widget sharing with a free Apple account (Personal Team) — `cfprefsd` checks the provisioning profile
+- `FileManager.containerURL(forSecurityApplicationGroupIdentifier:)` returns a URL on macOS even without valid provisioning, but the sandbox blocks access on the widget side
+- `FileManager.default.homeDirectoryForCurrentUser` returns the sandbox container path, not the real home — use `getpwuid(getuid())` for the real path
+- WidgetKit requires `app-sandbox: true` — a widget without sandbox does not display
 
-### @Observable interdit
+### @Observable Prohibited
 
-**NE PAS utiliser `@Observable`** (Swift 5.9 Observation framework). Le projet utilise `ObservableObject` + `@Published` exclusivement.
+**DO NOT use `@Observable`** (Swift 5.9 Observation framework). The project uses `ObservableObject` + `@Published` exclusively.
 
-Raison : `@Observable` provoque un freeze 100% CPU (boucle infinie de ré-évaluation SwiftUI) en Release builds compilés avec Swift 6.1.x (Xcode 16.4, utilisé par le CI `macos-15`). Le bug ne se reproduit PAS en Debug ni avec Swift 6.2+ (Xcode 26+), ce qui le rend impossible à diagnostiquer localement sans le bon toolchain.
+Reason: `@Observable` causes a 100% CPU freeze (infinite SwiftUI re-evaluation loop) in Release builds compiled with Swift 6.1.x (Xcode 16.4, used by CI `macos-15`). The bug does NOT reproduce in Debug or with Swift 6.2+ (Xcode 26+), making it impossible to diagnose locally without the right toolchain.
 
-Pattern à utiliser :
-- `class Store: ObservableObject` (pas `@Observable`)
-- `@Published var property` (pas de propriété nue)
-- `@EnvironmentObject var store: Store` (pas `@Environment(Store.self)`)
-- `.environmentObject(store)` (pas `.environment(store)`)
-- `private let store = Store()` dans l'App struct (pas `@StateObject` ni `@State`)
-- `@ObservedObject` pour les sous-vues qui reçoivent un store
-- `$store.property` pour les bindings (pas `@Bindable`)
+Pattern to use:
+- `class Store: ObservableObject` (not `@Observable`)
+- `@Published var property` (not a bare property)
+- `@EnvironmentObject var store: Store` (not `@Environment(Store.self)`)
+- `.environmentObject(store)` (not `.environment(store)`)
+- `private let store = Store()` in the App struct (not `@StateObject` or `@State`)
+- `@ObservedObject` for sub-views that receive a store
+- `$store.property` for bindings (not `@Bindable`)
 
-### Test iso-prod (mega nuke)
+### Iso-Prod Test (mega nuke)
 
-Pour tester localement un binaire **identique à ce que brew cask livre**, utiliser le workflow `test-build.yml` :
+To test locally a binary **identical to what brew cask delivers**, use the `test-build.yml` workflow:
 ```bash
-gh workflow run test-build.yml -f branch=<branche>
-# Attendre la fin, puis télécharger le DMG :
+gh workflow run test-build.yml -f branch=<branch>
+# Wait for completion, then download the DMG:
 gh run download <run-id> -n TokenEater-test -D /tmp/tokeneater-test/
 ```
 
-Avant d'installer le DMG, faire un mega nuke (inclut UserDefaults + sandbox containers — le nuke standard ne suffit pas) :
+Before installing the DMG, perform a mega nuke (includes UserDefaults + sandbox containers — the standard nuke is not enough):
 ```bash
 killall TokenEater NotificationCenter chronod cfprefsd 2>/dev/null; sleep 1
 defaults delete com.tokeneater.app 2>/dev/null
@@ -209,5 +208,5 @@ for c in com.tokeneater.app com.tokeneater.app.widget com.claudeusagewidget.app 
 done
 rm -rf ~/Library/Application\ Support/com.tokeneater.shared ~/Library/Caches/com.tokeneater.app
 rm -rf /Applications/TokenEater.app
-# Puis: monter DMG, copier .app, xattr -cr, lsregister, lancer manuellement
+# Then: mount DMG, copy .app, xattr -cr, lsregister, launch manually
 ```
